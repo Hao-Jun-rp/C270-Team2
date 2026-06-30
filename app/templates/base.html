@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Sparkle{% endblock %}</title>
+  <!-- The shared design system. Wired in once, used everywhere. -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('dashboard.home') }}">Sparkle<span class="dot">.</span></a>
+    <nav class="site-nav">
+      <a href="{{ url_for('dashboard.home') }}">Dashboard</a>
+      <a href="{{ url_for('listings.index') }}">Services</a>
+      <a href="{{ url_for('booking.index') }}">Booking</a>
+      <a href="{{ url_for('reviews.index') }}">Reviews</a>
+      <a href="{{ url_for('notifications.index') }}">Notifications</a>
+    </nav>
+    <div class="site-actions">
+      {% if current_user.is_authenticated %}
+        <a class="btn btn-ghost" href="{{ url_for('auth.profile') }}">{{ current_user.name }}</a>
+        <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">Sign out</a>
+      {% else %}
+        <a class="btn btn-ghost" href="{{ url_for('auth.login') }}">Log in</a>
+        <a class="btn btn-primary" href="{{ url_for('auth.register') }}">Sign up</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="container" style="padding-top:32px;padding-bottom:48px">
+    <!-- Flash messages (the little success/error notes) show up here -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="toast toast-{{ category }}" style="margin-bottom:16px">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">Sparkle<span class="dot">.</span> &middot; C270 DevOps &middot; AY2026S1</footer>
+</body>
+</html>

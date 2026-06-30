@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Profile &middot; Sparkle{% endblock %}
+{% block content %}
+  <h1>Your profile</h1>
+  <div class="card card-raised" style="max-width:480px;margin-top:24px">
+    <p class="field-label">Name</p>
+    <p style="margin-bottom:16px">{{ user.name }}</p>
+    <p class="field-label">Email</p>
+    <p style="margin-bottom:16px">{{ user.email }}</p>
+    <p class="field-label">Member since</p>
+    <p>{{ user.created_at.strftime('%d %b %Y') }}</p>
+  </div>
+{% endblock %}

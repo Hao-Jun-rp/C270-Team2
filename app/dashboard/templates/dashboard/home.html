@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Dashboard &middot; Sparkle{% endblock %}
+{% block content %}
+  <h1>Welcome to Sparkle</h1>
+  <p class="text-muted">Here's everything at a glance.</p>
+
+  <div class="card card-raised" style="margin-top:24px">
+    <h3>Tristan builds the dashboard here</h3>
+    <p class="text-muted">Replace this card with your real feature. Use the
+       classes from theme.css (.card, .btn, .pill...) so it matches the app.</p>
+    <a class="btn btn-primary" href="{{ url_for('listings.index') }}" style="margin-top:12px">Browse services</a>
+  </div>
+{% endblock %}

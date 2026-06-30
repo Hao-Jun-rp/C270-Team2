@@ -13,7 +13,6 @@ You need **Python 3.10+** and **Git** installed.
 ```bash
 # 1. Get the code
 git clone <PASTE-THE-GITHUB-LINK-HERE>
-cd cleaning-app
 
 # 2. Create a "virtual environment" (a clean, private box for this project's libraries)
 python -m venv venv

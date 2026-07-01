@@ -1,10 +1,155 @@
 {% extends "base.html" %}
-{% block title %}Services &middot; Sparkle{% endblock %}
+
 {% block content %}
-  <h1>Services</h1>
-  <div class="card" style="margin-top:24px">
-    <h3>Hazirah builds this feature here</h3>
-    <p class="text-muted">This is your starting page. Add your routes in
-       routes.py and your pages in this templates folder.</p>
-  </div>
+
+<div class="container" style="padding-top:40px; padding-bottom:50px;">
+
+    <!-- Hero Section -->
+    <div class="card card-raised" style="text-align:center; margin-bottom:35px;">
+
+        <h1>Cleaning Services</h1>
+
+        <p class="text-muted">
+            Find the right clean for your space.
+        </p>
+
+        <br>
+
+        <input
+            class="input"
+            type="text"
+            placeholder="🔍 Search for a cleaning service..."
+        >
+
+    </div>
+
+    <!-- Categories -->
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:30px;">
+
+        {% for category in categories %}
+
+            <span class="pill">
+                {{ category }}
+            </span>
+
+        {% endfor %}
+
+    </div>
+
+
+    <!-- Service Cards -->
+
+    <div
+        style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+        gap:25px;
+        "
+    >
+
+        {% for service in services %}
+
+        <div class="card card-raised">
+
+        <img
+            src="{{ url_for('static', filename='images/' + service.image) }}"
+            alt="{{ service.name }}"
+            style="
+                width:100%;
+                height:220px;
+                object-fit:cover;
+                border-radius:15px;
+                margin-bottom:18px;
+            "
+        >
+
+        <h2 style="margin-bottom:8px;">
+            {{ service.name }}
+        </h2>
+
+        {% if service.name == "Deep Cleaning" %}
+        <span
+            style="
+                background:#FFC95C;
+                color:#103A40;
+                padding:6px 12px;
+                border-radius:20px;
+                font-size:13px;
+                font-weight:bold;
+                display:inline-block;
+                margin-bottom:10px;
+            "
+        >
+        ⭐ Popular
+        </span>
+        {% endif %}
+
+        <br>
+
+        <span class="pill">
+            {{ service.category }}
+        </span>
+
+            <br><br>
+
+            <p class="text-muted">
+                {{ service.description }}
+            </p>
+
+            <hr style="border:none; border-top:1px solid #DDE8EA; margin:20px 0;">
+
+            <div
+                style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                "
+            >
+
+                <div>
+
+                    <div class="stars">
+                        ★★★★★
+                    </div>
+
+                    <small class="text-muted">
+                        {{ service.rating }} Rating
+                    </small>
+
+                </div>
+
+                <div style="text-align:right;">
+
+                    <strong style="font-size:22px;">
+                        ${{ service.price }}
+                    </strong>
+
+                    <br>
+
+                    <small class="text-muted">
+                        {{ service.duration }}
+                    </small>
+
+                </div>
+
+            </div>
+
+            <br>
+
+            <button
+                class="btn btn-primary"
+                style="width:100%; justify-content:center;"
+            >
+                Book Now
+            </button>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
 {% endblock %}

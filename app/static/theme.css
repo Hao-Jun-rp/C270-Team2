@@ -175,3 +175,19 @@ a:hover{color:var(--color-primary-hover);text-decoration:underline}
 /* ---------- Centered single-column page ---------- */
 .page-narrow{max-width:520px;margin:0 auto}
 .page-narrow h1{text-align:center}
+
+/* ---------- Notification bell ---------- */
+.bell-menu{position:relative}
+.bell-btn{position:relative;display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:#fff;border:1px solid var(--color-mist);cursor:pointer;color:var(--color-slate);transition:.15s ease}
+.bell-btn:hover{border-color:var(--color-primary)}
+.bell-btn svg{width:20px;height:20px;stroke:currentColor}
+.bell-dot{position:absolute;top:9px;right:10px;width:9px;height:9px;border-radius:50%;background:var(--color-coral);border:2px solid #fff;display:none}
+.bell-dot.show{display:block}
+.bell-dropdown{position:absolute;right:0;top:calc(100% + 8px);width:300px;background:#fff;border:1px solid var(--color-mist);border-radius:var(--radius-md);box-shadow:var(--shadow-md);padding:8px;display:none;z-index:50}
+.bell-dropdown.open{display:block}
+.bell-head{font-family:var(--font-head);font-weight:700;font-size:14px;color:var(--color-ink);padding:8px 10px 10px}
+.bell-empty{padding:22px 10px;text-align:center;color:var(--color-steam);font-size:14px}
+.bell-item{display:block;padding:11px 10px;border-radius:8px;text-decoration:none;color:var(--color-ink);font-size:14px;line-height:1.4}
+.bell-item:hover{background:var(--color-foam);text-decoration:none}
+.bell-seeall{display:block;text-align:center;padding:10px;margin-top:4px;border-top:1px solid var(--color-mist);color:var(--color-primary);font-family:var(--font-head);font-weight:600;font-size:14px;text-decoration:none}
+.bell-seeall:hover{text-decoration:none}

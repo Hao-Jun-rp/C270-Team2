@@ -42,7 +42,16 @@ class User(UserMixin, db.Model):
             return parts[0][0].upper()
         return (parts[0][0] + parts[-1][0]).upper()
 
-
+class Booking(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    service = db.Column(db.String(100), nullable=False)
+    date = db.Column(db.String(20), nullable=False)
+    time = db.Column(db.String(20), nullable=False)
+    address = db.Column(db.String(200), nullable=False)
+    notes = db.Column(db.String(500), nullable=True)
+    status = db.Column(db.String(20), default="Pending")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 # ============================================================
 #  ADD YOUR FEATURE'S TABLES BELOW
 #  Message Marcus before editing this file so merges stay clean.

@@ -32,6 +32,16 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    @property
+    def initials(self):
+        """M for 'Marcus', MX for 'Marcus Xue' — used by the navbar avatar."""
+        parts = self.name.split()
+        if not parts:
+            return "?"
+        if len(parts) == 1:
+            return parts[0][0].upper()
+        return (parts[0][0] + parts[-1][0]).upper()
+
 
 # ============================================================
 #  ADD YOUR FEATURE'S TABLES BELOW

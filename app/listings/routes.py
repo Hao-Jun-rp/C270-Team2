@@ -3,7 +3,7 @@ from . import listings_bp
 
 
 @listings_bp.route("/listings")
-def listings():
+def index():
 
     services = [
         {

@@ -5,15 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Sparkle{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+  {% block head %}{% endblock %}
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="{{ url_for('dashboard.home') }}">Sparkle<span class="dot">.</span></a>
+    <a class="brand" href="{{ url_for('main.index') }}">Sparkle<span class="dot">.</span></a>
+    {% if current_user.is_authenticated %}
     <nav class="site-nav">
       <a href="{{ url_for('dashboard.home') }}">Dashboard</a>
       <a href="{{ url_for('listings.index') }}">Services</a>
       <a href="{{ url_for('booking.index') }}">Booking</a>
     </nav>
+    {% endif %}
     <div class="site-actions">
       {% if current_user.is_authenticated %}
 

@@ -4,23 +4,56 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Sparkle{% endblock %}</title>
-  <!-- The shared design system. Wired in once, used everywhere. -->
   <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+  {% block head %}{% endblock %}
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="{{ url_for('dashboard.home') }}">Sparkle<span class="dot">.</span></a>
+    <a class="brand" href="{{ url_for('main.index') }}">Sparkle<span class="dot">.</span></a>
+    {% if current_user.is_authenticated %}
     <nav class="site-nav">
       <a href="{{ url_for('dashboard.home') }}">Dashboard</a>
       <a href="{{ url_for('listings.index') }}">Services</a>
       <a href="{{ url_for('booking.index') }}">Booking</a>
-      <a href="{{ url_for('reviews.index') }}">Reviews</a>
-      <a href="{{ url_for('notifications.index') }}">Notifications</a>
     </nav>
+    {% endif %}
     <div class="site-actions">
       {% if current_user.is_authenticated %}
-        <a class="btn btn-ghost" href="{{ url_for('auth.profile') }}">{{ current_user.name }}</a>
-        <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">Sign out</a>
+
+        <!-- 🔔 Notification bell (shell). Hao Jun fills the list inside. -->
+        <div class="bell-menu">
+          <button class="bell-btn" id="bellBtn" onclick="toggleBell(event)" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <!-- Add class "show" to this dot when there are unread notifications -->
+            <span class="bell-dot" id="bellDot"></span>
+          </button>
+          <div class="bell-dropdown" id="bellDropdown" role="menu">
+            <div class="bell-head">Notifications</div>
+            <!-- HAO JUN: loop your notifications here, e.g.
+                 {% for n in notifications %}
+                   <a class="bell-item" href="#">{{ n.message }}</a>
+                 {% endfor %}  -->
+            <div class="bell-empty">You're all caught up &#10024;</div>
+            <a class="bell-seeall" href="{{ url_for('notifications.index') }}">See all</a>
+          </div>
+        </div>
+
+        <!-- Profile chip + menu -->
+        <div class="user-menu">
+          <button class="user-chip" id="userChipBtn" onclick="toggleUserMenu(event)" aria-haspopup="true" aria-expanded="false">
+            <span class="avatar">{{ current_user.initials }}</span>
+            <span class="user-name">{{ current_user.name }}</span>
+            <span class="chev" aria-hidden="true">&#9662;</span>
+          </button>
+          <div class="user-dropdown" id="userDropdown" role="menu">
+            <a class="dropdown-item" href="{{ url_for('auth.profile') }}" role="menuitem">Edit profile</a>
+            <button class="dropdown-item danger" onclick="openSignOutModal()" role="menuitem">Sign out</button>
+          </div>
+        </div>
+
       {% else %}
         <a class="btn btn-ghost" href="{{ url_for('auth.login') }}">Log in</a>
         <a class="btn btn-primary" href="{{ url_for('auth.register') }}">Sign up</a>
@@ -29,7 +62,6 @@
   </header>
 
   <main class="container" style="padding-top:32px;padding-bottom:48px">
-    <!-- Flash messages (the little success/error notes) show up here -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
         <div class="toast toast-{{ category }}" style="margin-bottom:16px">{{ message }}</div>
@@ -40,5 +72,51 @@
   </main>
 
   <footer class="site-footer">Sparkle<span class="dot">.</span> &middot; C270 DevOps &middot; AY2026S1</footer>
+
+  {% if current_user.is_authenticated %}
+  <div class="modal-overlay" id="signOutModal" onclick="if(event.target===this)closeSignOutModal()">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="soTitle">
+      <h3 id="soTitle">Sign out?</h3>
+      <p class="text-muted">You'll need to log in again next time.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeSignOutModal()">Cancel</button>
+        <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">Sign out</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <script>
+    function closeAllMenus(){
+      var u=document.getElementById('userDropdown');
+      var b=document.getElementById('bellDropdown');
+      if(u) u.classList.remove('open');
+      if(b) b.classList.remove('open');
+    }
+    function toggleUserMenu(e){
+      e.stopPropagation();
+      var d=document.getElementById('userDropdown');
+      var willOpen=!d.classList.contains('open');
+      closeAllMenus();
+      if(willOpen) d.classList.add('open');
+      document.getElementById('userChipBtn').setAttribute('aria-expanded', willOpen);
+    }
+    function toggleBell(e){
+      e.stopPropagation();
+      var d=document.getElementById('bellDropdown');
+      var willOpen=!d.classList.contains('open');
+      closeAllMenus();
+      if(willOpen) d.classList.add('open');
+    }
+    function openSignOutModal(){
+      closeAllMenus();
+      document.getElementById('signOutModal').classList.add('open');
+    }
+    function closeSignOutModal(){
+      document.getElementById('signOutModal').classList.remove('open');
+    }
+    document.addEventListener('click', closeAllMenus);
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSignOutModal(); });
+  </script>
 </body>
 </html>

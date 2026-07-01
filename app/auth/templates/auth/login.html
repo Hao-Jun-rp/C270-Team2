@@ -6,9 +6,9 @@
   <p class="text-muted" style="margin-bottom:24px">Let's get you signed in.</p>
   <form method="POST" action="{{ url_for('auth.login') }}">
     <label class="field-label">Email</label>
-    <input class="input" type="email" name="email" placeholder="you@example.com" required style="margin-bottom:16px">
+    <input class="input" type="email" name="email" value="{{ email or '' }}" placeholder="you@example.com" required style="margin-bottom:16px">
     <label class="field-label">Password</label>
-    <input class="input" type="password" name="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required style="margin-bottom:20px">
+    <input class="input" type="password" name="password" placeholder="Your password" required style="margin-bottom:20px">
     <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center">Log in</button>
   </form>
   <p class="text-muted" style="margin-top:16px;font-size:14px">New here?

@@ -58,7 +58,6 @@ def get_bookings():
 
     ]
 
-
 # Dashboard homepage
 @dashboard_bp.route("/")
 @dashboard_bp.route("/dashboard")

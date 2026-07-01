@@ -13,11 +13,32 @@
       <a href="{{ url_for('dashboard.home') }}">Dashboard</a>
       <a href="{{ url_for('listings.index') }}">Services</a>
       <a href="{{ url_for('booking.index') }}">Booking</a>
-      <a href="{{ url_for('reviews.index') }}">Reviews</a>
-      <a href="{{ url_for('notifications.index') }}">Notifications</a>
     </nav>
     <div class="site-actions">
       {% if current_user.is_authenticated %}
+
+        <!-- 🔔 Notification bell (shell). Hao Jun fills the list inside. -->
+        <div class="bell-menu">
+          <button class="bell-btn" id="bellBtn" onclick="toggleBell(event)" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <!-- Add class "show" to this dot when there are unread notifications -->
+            <span class="bell-dot" id="bellDot"></span>
+          </button>
+          <div class="bell-dropdown" id="bellDropdown" role="menu">
+            <div class="bell-head">Notifications</div>
+            <!-- HAO JUN: loop your notifications here, e.g.
+                 {% for n in notifications %}
+                   <a class="bell-item" href="#">{{ n.message }}</a>
+                 {% endfor %}  -->
+            <div class="bell-empty">You're all caught up &#10024;</div>
+            <a class="bell-seeall" href="{{ url_for('notifications.index') }}">See all</a>
+          </div>
+        </div>
+
+        <!-- Profile chip + menu -->
         <div class="user-menu">
           <button class="user-chip" id="userChipBtn" onclick="toggleUserMenu(event)" aria-haspopup="true" aria-expanded="false">
             <span class="avatar">{{ current_user.initials }}</span>
@@ -29,6 +50,7 @@
             <button class="dropdown-item danger" onclick="openSignOutModal()" role="menuitem">Sign out</button>
           </div>
         </div>
+
       {% else %}
         <a class="btn btn-ghost" href="{{ url_for('auth.login') }}">Log in</a>
         <a class="btn btn-primary" href="{{ url_for('auth.register') }}">Sign up</a>
@@ -62,28 +84,36 @@
   {% endif %}
 
   <script>
+    function closeAllMenus(){
+      var u=document.getElementById('userDropdown');
+      var b=document.getElementById('bellDropdown');
+      if(u) u.classList.remove('open');
+      if(b) b.classList.remove('open');
+    }
     function toggleUserMenu(e){
       e.stopPropagation();
       var d=document.getElementById('userDropdown');
-      var open=d.classList.toggle('open');
-      document.getElementById('userChipBtn').setAttribute('aria-expanded', open);
+      var willOpen=!d.classList.contains('open');
+      closeAllMenus();
+      if(willOpen) d.classList.add('open');
+      document.getElementById('userChipBtn').setAttribute('aria-expanded', willOpen);
+    }
+    function toggleBell(e){
+      e.stopPropagation();
+      var d=document.getElementById('bellDropdown');
+      var willOpen=!d.classList.contains('open');
+      closeAllMenus();
+      if(willOpen) d.classList.add('open');
     }
     function openSignOutModal(){
-      document.getElementById('userDropdown').classList.remove('open');
+      closeAllMenus();
       document.getElementById('signOutModal').classList.add('open');
     }
     function closeSignOutModal(){
       document.getElementById('signOutModal').classList.remove('open');
     }
-    // Click anywhere else closes the dropdown
-    document.addEventListener('click', function(){
-      var d=document.getElementById('userDropdown');
-      if(d) d.classList.remove('open');
-    });
-    // Esc closes the modal
-    document.addEventListener('keydown', function(e){
-      if(e.key==='Escape') closeSignOutModal();
-    });
+    document.addEventListener('click', closeAllMenus);
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSignOutModal(); });
   </script>
 </body>
 </html>

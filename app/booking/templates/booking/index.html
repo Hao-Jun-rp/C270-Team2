@@ -1,10 +1,114 @@
 {% extends "base.html" %}
-{% block title %}Booking &middot; Sparkle{% endblock %}
+{% block title %}Book a clean{% endblock %}
+
 {% block content %}
-  <h1>Booking</h1>
-  <div class="card" style="margin-top:24px">
-    <h3>Ashish builds this feature here</h3>
-    <p class="text-muted">This is your starting page. Add your routes in
-       routes.py and your pages in this templates folder.</p>
+<div class="container" style="padding-top:40px;padding-bottom:64px">
+
+  <div style="margin-bottom:32px">
+    <span style="font-family:var(--font-head);font-weight:600;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--color-primary)">Booking &amp; scheduling</span>
+    <h1 style="margin-top:6px">Pick a time — we'll handle the rest.</h1>
+    <p style="color:var(--color-slate);max-width:46ch">Choose a service, date, and time. You can cancel anytime.</p>
   </div>
+
+  <!-- Service pills -->
+  <div style="margin-bottom:32px">
+    <div style="font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:12px">Choose a service</div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px">
+      <div class="pill" onclick="selectService(this,'Standard Clean',59)">🏠 Standard Clean — $59</div>
+      <div class="pill" onclick="selectService(this,'Eco Clean',69)" style="background:var(--color-leaf-soft);color:#1f8a52">🌿 Eco Clean — $69</div>
+      <div class="pill" onclick="selectService(this,'Deep Clean',89)">💧 Deep Clean — $89</div>
+      <div class="pill" onclick="selectService(this,'Move-out Clean',119)">📦 Move-out Clean — $119</div>
+    </div>
+  </div>
+
+  <!-- Date + time -->
+  <div class="card" style="padding:24px;margin-bottom:24px;max-width:480px">
+    <div style="font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:12px">Select date &amp; time</div>
+    <input type="date" class="input" id="dateInput" style="margin-bottom:12px">
+    <select class="input" id="timeInput">
+      <option value="">Pick a time slot</option>
+      <option>08:00–09:00</option>
+      <option>09:00–10:00</option>
+      <option>10:00–11:00</option>
+      <option>11:00–12:00</option>
+      <option>13:00–14:00</option>
+      <option>14:00–15:00</option>
+      <option>15:00–16:00</option>
+      <option>16:00–17:00</option>
+    </select>
+  </div>
+
+  <!-- Address + notes -->
+  <div class="card" style="padding:24px;margin-bottom:24px;max-width:480px">
+    <div style="font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:12px">Your details</div>
+    <label class="field-label">Address</label>
+    <input type="text" class="input" id="addressInput" placeholder="e.g. 12 Orchard Road, Singapore" style="margin-bottom:12px">
+    <label class="field-label">Notes (optional)</label>
+    <input type="text" class="input" id="notesInput" placeholder="e.g. Bring eco products">
+  </div>
+
+  <button class="btn btn-primary" onclick="confirmBooking()">Create booking</button>
+
+  <!-- Success toast -->
+  <div id="toast" style="display:none;margin-top:24px" class="toast">
+    <span>✅</span>
+    <div>
+      <strong style="font-family:var(--font-head);font-size:.875rem">You're all set!</strong>
+      <p id="toastMsg" style="margin:0;font-size:.8125rem;color:var(--color-slate)"></p>
+    </div>
+  </div>
+
+  <!-- Upcoming bookings -->
+  <div style="margin-top:48px">
+    <h2 style="margin-bottom:16px">Upcoming bookings</h2>
+    {% if bookings %}
+      {% for b in bookings %}
+      <div class="card" style="padding:20px;margin-bottom:12px;display:flex;align-items:center;gap:16px">
+        <div style="background:var(--color-foam);border-radius:8px;padding:10px 14px;text-align:center;min-width:52px">
+          <div style="font-family:var(--font-head);font-weight:700;font-size:1.125rem;color:var(--color-primary);line-height:1">{{ b.date.split('-')[2] }}</div>
+          <div style="font-size:.625rem;font-weight:600;text-transform:uppercase;color:var(--color-primary)">{{ b.date.split('-')[1] }}</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-family:var(--font-head);font-weight:600">{{ b.service }}</div>
+          <div style="font-size:.8125rem;color:var(--color-slate)">{{ b.time }} · {{ b.address }}</div>
+        </div>
+        <div style="font-size:.6875rem;font-weight:700;text-transform:uppercase;padding:5px 10px;border-radius:999px;
+          background:{% if b.status == 'Confirmed' %}var(--color-leaf-soft){% else %}#FFF4DE{% endif %};
+          color:{% if b.status == 'Confirmed' %}#1f8a52{% else %}#9a6b00{% endif %}">
+          {{ b.status }}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:var(--color-steam)">No bookings yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+let selectedService = 'Standard Clean', selectedPrice = 59;
+
+function selectService(el, name, price) {
+  document.querySelectorAll('.pill').forEach(p => p.style.background = '');
+  el.style.background = 'var(--color-primary)';
+  el.style.color = '#fff';
+  selectedService = name;
+  selectedPrice = price;
+}
+
+function confirmBooking() {
+  const date = document.getElementById('dateInput').value;
+  const time = document.getElementById('timeInput').value;
+  const address = document.getElementById('addressInput').value;
+  if (!date || !time || !address) {
+    alert('Please fill in date, time, and address.');
+    return;
+  }
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent =
+    `${selectedService} booked for ${date} at ${time}. $${selectedPrice}`;
+  toast.style.display = 'flex';
+}
+</script>
 {% endblock %}

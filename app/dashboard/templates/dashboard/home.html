@@ -1,13 +1,49 @@
 {% extends "base.html" %}
-{% block title %}Dashboard &middot; Sparkle{% endblock %}
-{% block content %}
-  <h1>Welcome to Sparkle</h1>
-  <p class="text-muted">Here's everything at a glance.</p>
 
-  <div class="card card-raised" style="margin-top:24px">
-    <h3>Tristan builds the dashboard here</h3>
-    <p class="text-muted">Replace this card with your real feature. Use the
-       classes from theme.css (.card, .btn, .pill...) so it matches the app.</p>
-    <a class="btn btn-primary" href="{{ url_for('listings.index') }}" style="margin-top:12px">Browse services</a>
-  </div>
+{% block title %}
+Dashboard · Sparkle
+{% endblock %}
+
+{% block content %}
+
+<h1>My Dashboard</h1>
+
+<p class="text-muted">
+    Welcome back. View your current booking activity below.
+</p>
+
+<br>
+
+<!-- Booking Summary -->
+
+<div class="card card-raised">
+
+    <h3>Booking Summary</h3>
+
+    <p>Pending: {{ pending_count }}</p>
+
+    <p>Confirmed: {{ confirmed_count }}</p>
+
+    <p>Completed: {{ completed_count }}</p>
+</div>
+
+<br>
+
+<!-- Main Navigation Card -->
+
+<a href="{{ url_for('dashboard.bookings_page') }}"
+   style="text-decoration:none; color:inherit;">
+
+    <div class="card">
+
+        <h3>My Bookings</h3>
+
+        <p class="text-muted">
+            Click here to view all your bookings.
+        </p>
+
+    </div>
+
+</a>
+
 {% endblock %}

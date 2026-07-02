@@ -1,12 +1,31 @@
-"""
-booking feature (Ashish) — starter stub. Build your pages here.
-You OWN this folder. You should rarely need to touch anyone else's.
-"""
 from flask import Blueprint, render_template
+from flask_login import login_required, current_user
 
-booking_bp = Blueprint("booking", __name__, url_prefix="/booking", template_folder="templates")
+booking_bp = Blueprint("booking", __name__, template_folder="templates", url_prefix="/booking")
 
+# Mock data — replace with real DB queries once Marcus adds the Booking table
+MOCK_BOOKINGS = [
+    {
+        "id": 1,
+        "service": "Deep Clean",
+        "date": "2027-01-15",
+        "time": "10:00–11:00",
+        "status": "Confirmed",
+        "address": "12 Orchard Road, Singapore",
+        "notes": "Please bring eco products."
+    },
+    {
+        "id": 2,
+        "service": "Standard Clean",
+        "date": "2027-01-22",
+        "time": "14:00–15:00",
+        "status": "Pending",
+        "address": "88 Tanjong Pagar, Singapore",
+        "notes": ""
+    }
+]
 
 @booking_bp.route("/")
+@login_required
 def index():
-    return render_template("booking/index.html")
+    return render_template("booking/index.html", bookings=MOCK_BOOKINGS)

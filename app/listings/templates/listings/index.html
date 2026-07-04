@@ -36,52 +36,48 @@
             </select>
 
         </div>
-        
+
     </div>
 
     <!-- Categories -->
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:30px;">
 
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:30px;">
+        <button
+            class="pill"
+            onclick="filterCategory('All')"
+            style="border:none; cursor:pointer;"
+        >
+            All
+        </button>
 
-            <button
-                class="pill"
-                onclick="filterCategory('All')"
-                style="border:none; cursor:pointer;"
-            >
-                All
-            </button>
-
-    
-            {% for category in categories %}
-
-            <button
-                class="pill"
-                onclick="filterCategory('{{ category }}')"
-                style="border:none; cursor:pointer;"
-            >
-                {{ category }}
-            </button>
-
-            {% endfor %}
+        {% for category in categories %}
+        {% if category != 'All' %}
+        <button
+            class="pill"
+            onclick="filterCategory('{{ category }}')"
+            style="border:none; cursor:pointer;"
+        >
+            {{ category }}
+        </button>
+        {% endif %}
+        {% endfor %}
 
     </div>
 
 
     <!-- Service Cards -->
-     
-
-        <div
-            class="service-grid"
-            style="
-                display:grid;
-                grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
-                gap:25px;
-            "
-        >
+    <div
+        class="service-grid"
+        style="
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+            gap:25px;
+        "
+    >
 
         {% for service in services %}
 
-       <div
+        <div
             class="card card-raised service-card"
             data-name="{{ service.name }}"
             data-category="{{ service.category }}"
@@ -89,51 +85,51 @@
             data-rating="{{ service.rating }}"
         >
 
-        <img
-            src="{{ url_for('static', filename='images/' + service.image) }}"
-            alt="{{ service.name }}"
-            style="
-                width:100%;
-                height:220px;
-                object-fit:cover;
-                border-radius:15px;
-                margin-bottom:18px;
-            "
-        >
+            <img
+                src="{{ url_for('static', filename='images/' + service.image) }}"
+                alt="{{ service.name }}"
+                style="
+                    width:100%;
+                    height:220px;
+                    object-fit:cover;
+                    border-radius:15px;
+                    margin-bottom:18px;
+                "
+            >
 
-        <h2 style="margin-bottom:8px;">
-            {{ service.name }}
-        </h2>
+            <h2 style="margin-bottom:8px;">
+                {{ service.name }}
+            </h2>
 
-        {% if service.name == "Deep Cleaning" %}
-        <span
-            style="
-                background:#FFC95C;
-                color:#103A40;
-                padding:6px 12px;
-                border-radius:20px;
-                font-size:13px;
-                font-weight:bold;
-                display:inline-block;
-                margin-bottom:10px;
-            "
-        >
-        ⭐ Popular
-        </span>
-        {% endif %}
+            {% if service.name == "Deep Cleaning" %}
+            <span
+                style="
+                    background:#FFC95C;
+                    color:#103A40;
+                    padding:6px 12px;
+                    border-radius:20px;
+                    font-size:13px;
+                    font-weight:bold;
+                    display:inline-block;
+                    margin-bottom:10px;
+                "
+            >
+            ⭐ Popular
+            </span>
+            {% endif %}
 
-        <br>
+            <br>
 
-        <span class="pill">
-            {{ service.category }}
-        </span>
+            <span class="pill">
+                {{ service.category }}
+            </span>
 
             <br><br>
 
             <p class="text-muted">
                 {{ service.description }}
             </p>
-           
+
             <p style="color:#2E8B57; font-weight:bold;">
                 ✔ Available Today
             </p>
@@ -141,68 +137,63 @@
             <ul class="text-muted" style="padding-left:18px;">
 
             {% if service.category == "Home" %}
-            <li>Vacuum & Mop Floors</li>
-            <li>Dust Furniture</li>
-            <li>Bathroom Cleaning</li>
-            <li>Kitchen Wipe Down</li>
+                <li>Vacuum &amp; Mop Floors</li>
+                <li>Dust Furniture</li>
+                <li>Bathroom Cleaning</li>
+                <li>Kitchen Wipe Down</li>
 
             {% elif service.category == "Office" %}
-            <li>Desk Sanitising</li>
-            <li>Meeting Rooms</li>
-            <li>Pantry Cleaning</li>
-            <li>Trash Removal</li>
+                <li>Desk Sanitising</li>
+                <li>Meeting Rooms</li>
+                <li>Pantry Cleaning</li>
+                <li>Trash Removal</li>
 
             {% elif service.category == "Deep Clean" %}
-            <li>Inside Cabinets</li>
-            <li>Windows</li>
-            <li>Behind Furniture</li>
-            <li>Full Bathroom Scrub</li>
-            
+                <li>Inside Cabinets</li>
+                <li>Windows</li>
+                <li>Behind Furniture</li>
+                <li>Full Bathroom Scrub</li>
+
             {% elif service.category == "Move Out" %}
-            <li>Complete Property Cleaning</li>
-            <li>Kitchen Appliances</li>
-            <li>Floors & Windows</li>
-            
+                <li>Complete Property Cleaning</li>
+                <li>Kitchen Appliances</li>
+                <li>Floors &amp; Windows</li>
+
             {% else %}
-            <li>Eco-Friendly Products</li>
-            <li>Non-Toxic Cleaning</li>
-            <li>Safe For Pets & Children</li>
-            
+                <li>Eco-Friendly Products</li>
+                <li>Non-Toxic Cleaning</li>
+                <li>Safe For Pets &amp; Children</li>
+
             {% endif %}
 
             </ul>
-           
+
             <hr style="border:none; border-top:1px solid #DDE8EA; margin:20px 0;">
 
-            <div>
+            <div style="margin-top:15px;">
 
-                <div>
+                <p style="color:#F4B400; font-size:18px; margin-bottom:5px;">
+                    ★★★★★ {{ service.rating }}
+                </p>
+                <p class="text-muted">
+                    Trusted by hundreds of happy customers
+                </p>
 
-                    <div style="margin-top:15px;">
+                <p>
+                    💲 <strong>From ${{ service.price }}</strong>
+                </p>
 
-                        <p style="color:#F4B400; font-size:18px; margin-bottom:5px;">
-                            ★★★★★ {{ service.rating }}
-                        </p>
-                        <p class="text-muted">
-                            Trusted by hundreds of happy customers
-                        </p>
+                <p class="text-muted">
+                    ⏱ {{ service.duration }}
+                </p>
 
-                        <p>
-                            💲 <strong>From ${{ service.price }}</strong>
-                        </p>
-
-                        <p class="text-muted">
-                            ⏱ {{ service.duration }}
-                        </p>
-
-                    </div>
-
-                </div>
+            </div>
 
             <br>
 
-            <a href="{{ url_for('booking.index',
+            <a href="{{ url_for('booking.add_booking',
                                 service=service.name,
+                                service_id=service.id,
                                 price=service.price) }}"
                 class="btn btn-primary"
                 style="
@@ -213,33 +204,30 @@
                 margin-top:12px;
                 "
             >
-
                 Book Now
-
             </a>
 
-                <a
-                    href="href="{{ url_for('reviews.index', service=service.name) }}""
-                    class="btn"
-                    style="
-                        display:flex;
-                        justify-content:center;
-                        margin-top:10px;
-                        text-decoration:none;
-                        background:white;
-                        color:#103A40;
-                        border:2px solid #103A40;
-                    "
-                >
-                    View Reviews
-                </a>
-                </div>
+            <a
+                href="{{ url_for('reviews.index', service=service.name) }}"
+                class="btn"
+                style="
+                    display:flex;
+                    justify-content:center;
+                    margin-top:10px;
+                    text-decoration:none;
+                    background:white;
+                    color:#103A40;
+                    border:2px solid #103A40;
+                "
+            >
+                View Reviews
+            </a>
 
+        </div><!-- /.service-card -->
 
-           
-{% endfor %}
+        {% endfor %}
 
-</div>
+    </div>
 
 </div>
 

@@ -1,1 +1,66 @@
+{% extends "base.html" %}
+{% block title %}New booking{% endblock %}
 
+{% block content %}
+<div class="container" style="padding-top:40px;padding-bottom:64px;max-width:640px">
+
+  <!-- Header -->
+  <div style="margin-bottom:28px">
+    <span style="font-family:var(--font-head);font-weight:600;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--color-primary)">Booking &amp; scheduling</span>
+    <h1 style="margin-top:6px">Book a clean</h1>
+    <p style="color:var(--color-slate);margin:4px 0 0">
+      {% if service_name %}You're booking <strong>{{ service_name }}</strong>{% if price %} · from ${{ price }}{% endif %}.{% else %}Fill in the details below and we'll confirm shortly.{% endif %}
+    </p>
+  </div>
+
+  <!-- Form -->
+  <form method="POST" action="{{ url_for('booking.add_booking') }}" class="card card-raised" style="padding:28px;display:flex;flex-direction:column;gap:18px">
+
+    <!-- keep the service id so it can be saved later -->
+    <input type="hidden" name="service_id" value="{{ service_id }}">
+
+    <div>
+      <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Service</label>
+      <input class="input" type="text" name="service_name" value="{{ service_name }}"
+             placeholder="e.g. Home Cleaning" {% if service_name %}readonly{% endif %} required
+             style="width:100%">
+    </div>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px">
+        <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Date</label>
+        <input class="input" type="date" name="date" required style="width:100%">
+      </div>
+      <div style="flex:1;min-width:180px">
+        <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Time slot</label>
+        <select class="input" name="time" required style="width:100%">
+          <option value="">Choose a time…</option>
+          <option value="09:00–10:00">09:00 – 10:00</option>
+          <option value="10:00–11:00">10:00 – 11:00</option>
+          <option value="11:00–12:00">11:00 – 12:00</option>
+          <option value="14:00–15:00">14:00 – 15:00</option>
+          <option value="15:00–16:00">15:00 – 16:00</option>
+          <option value="16:00–17:00">16:00 – 17:00</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Address</label>
+      <input class="input" type="text" name="address" placeholder="Where should we clean?" required style="width:100%">
+    </div>
+
+    <div>
+      <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Notes <span class="text-muted" style="font-weight:400">(optional)</span></label>
+      <textarea class="input" name="notes" rows="3" placeholder="Anything we should know? e.g. pets, eco products, gate code" style="width:100%;resize:vertical"></textarea>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:6px">
+      <a href="{{ url_for('listings.index') }}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary" style="flex:1">Request booking</button>
+    </div>
+
+  </form>
+
+</div>
+{% endblock %}

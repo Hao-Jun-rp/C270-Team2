@@ -1,7 +1,16 @@
 """
-DATABASE TABLES (shared file — owned by Marcus / team lead).
-A "model" is one table. The User table is here because almost every
-feature connects to a user (bookings, reviews, notifications...).
+DATABASE TABLES (shared file - owned by Marcus / team lead).
+
+A "model" is one table. Every feature links to a user via `user_id`,
+and anything about a service links via `service_id`. We NEVER store a
+service as free text - always the service_id, so bookings and reviews
+can point at the exact same service row.
+
+RULES FOR THE TEAM
+  - Only Marcus edits this file. Message him before changing it.
+  - Link to a person with:   user_id    -> ForeignKey("user.id")
+  - Link to a service with:  service_id -> ForeignKey("service.id")
+    (SQLAlchemy names the tables `user` and `service`, lowercase.)
 """
 from datetime import datetime
 from flask_login import UserMixin
@@ -16,7 +25,7 @@ def load_user(user_id):
 
 
 # ============================================================
-#  User table  (Marcus)
+#  User table  (Marcus)  ->  table name: "user"
 # ============================================================
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -25,7 +34,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # We never store the raw password — only a scrambled "hash".
+    # We never store the raw password - only a scrambled "hash".
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -34,7 +43,7 @@ class User(UserMixin, db.Model):
 
     @property
     def initials(self):
-        """M for 'Marcus', MX for 'Marcus Xue' — used by the navbar avatar."""
+        """M for 'Marcus', MX for 'Marcus Xue' - used by the navbar avatar."""
         parts = self.name.split()
         if not parts:
             return "?"
@@ -42,29 +51,98 @@ class User(UserMixin, db.Model):
             return parts[0][0].upper()
         return (parts[0][0] + parts[-1][0]).upper()
 
+
+# ============================================================
+#  Service table  (Hazirah - listings)  ->  table name: "service"
+#  This is the "hub" that bookings and reviews both link to.
+# ============================================================
+class Service(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    category = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.String(500), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    duration = db.Column(db.String(50), nullable=False)
+    rating = db.Column(db.Float, default=0.0)     # AGGREGATE score shown on cards.
+                                                  # Recompute from Review rows when
+                                                  # a review is added/approved.
+    image = db.Column(db.String(200), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_by = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)  # optional: which admin added it
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ============================================================
+#  Booking table  (Ashish - booking)  ->  table name: "booking"
+#  CHANGED: `service` (text) is now `service_id` (a real link).
+# ============================================================
 class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    service = db.Column(db.String(100), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey("service.id"), nullable=False)
     date = db.Column(db.String(20), nullable=False)
     time = db.Column(db.String(20), nullable=False)
     address = db.Column(db.String(200), nullable=False)
     notes = db.Column(db.String(500), nullable=True)
-    status = db.Column(db.String(20), default="Pending")
+    status = db.Column(db.String(20), nullable=False, default="Pending")
+    # Agreed status words: Pending / Confirmed / Completed / Cancelled
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # These let templates do  booking.service.name  and  booking.user.name
+    user = db.relationship("User", backref="bookings")
+    service = db.relationship("Service", backref="bookings")
+
+
 # ============================================================
-#  ADD YOUR FEATURE'S TABLES BELOW
-#  Message Marcus before editing this file so merges stay clean.
-#  Examples to copy (uncomment and edit):
-#
-#  class Service(db.Model):          # Hazirah - listings
-#      id = db.Column(db.Integer, primary_key=True)
-#      title = db.Column(db.String(120), nullable=False)
-#      price = db.Column(db.Float, nullable=False)
-#
-#  class Booking(db.Model):          # Ashish - booking
-#      id = db.Column(db.Integer, primary_key=True)
-#      user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-#      service_id = db.Column(db.Integer, db.ForeignKey("service.id"))
-#      date = db.Column(db.DateTime)
+#  Review table  (Matthew - reviews)  ->  table name: "review"
+#  FIXED: customer_id/"customer" -> user_id/"user" (there is no Customer table).
 # ============================================================
+class Review(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey("service.id"), nullable=False)
+
+    rating = db.Column(db.Integer, nullable=False)              # 1..5
+    review_title = db.Column(db.String(100), nullable=True)     # optional (form may not collect it)
+    review_description = db.Column(db.Text, nullable=False)
+
+    staff_reply = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default="Pending")
+    # Agreed status words: Pending / Approved / Hidden
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    user = db.relationship("User", backref="reviews")
+    service = db.relationship("Service", backref="reviews")
+
+
+# ============================================================
+#  Notification table  (Hao Jun - notifications)  ->  table name: "notification"
+#  ADDED: this base table was missing; the NotificationLog FK depended on it.
+# ============================================================
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    message = db.Column(db.String(255), nullable=False)
+    is_read = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="notifications")
+
+
+# ------------------------------------------------------------
+#  OPTIONAL / ADVANCED (Hao Jun): keep only if you actually need
+#  an audit trail of delivery attempts. It links to Notification
+#  above, so it now resolves correctly. Delete if not needed.
+# ------------------------------------------------------------
+# class NotificationLog(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     notification_id = db.Column(db.Integer, db.ForeignKey("notification.id"), nullable=False)
+#     event = db.Column(db.String(20), nullable=False)     # created/sent/failed/read/cancelled
+#     channel = db.Column(db.String(20), nullable=True)    # in_app/email/sms/push
+#     success = db.Column(db.Boolean, nullable=False, default=True)
+#     error_message = db.Column(db.String(255), nullable=True)
+#     logged_at = db.Column(db.DateTime, default=datetime.utcnow)
+#     notification = db.relationship("Notification", backref="logs")

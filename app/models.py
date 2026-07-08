@@ -51,6 +51,11 @@ class User(UserMixin, db.Model):
             return parts[0][0].upper()
         return (parts[0][0] + parts[-1][0]).upper()
 
+    @property
+    def display_id(self):
+        """Readable label for the UI, e.g. U001. The real id stays an integer."""
+        return f"U{self.id:03d}"
+
 
 # ============================================================
 #  Service table  (Hazirah - listings)  ->  table name: "service"
@@ -72,6 +77,10 @@ class Service(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    @property
+    def display_id(self):
+        return f"S{self.id:03d}"
+
 
 # ============================================================
 #  Booking table  (Ashish - booking)  ->  table name: "booking"
@@ -92,6 +101,10 @@ class Booking(db.Model):
     # These let templates do  booking.service.name  and  booking.user.name
     user = db.relationship("User", backref="bookings")
     service = db.relationship("Service", backref="bookings")
+
+    @property
+    def display_id(self):
+        return f"B{self.id:03d}"
 
 
 # ============================================================
@@ -117,6 +130,10 @@ class Review(db.Model):
     user = db.relationship("User", backref="reviews")
     service = db.relationship("Service", backref="reviews")
 
+    @property
+    def display_id(self):
+        return f"R{self.id:03d}"
+
 
 # ============================================================
 #  Notification table  (Hao Jun - notifications)  ->  table name: "notification"
@@ -130,6 +147,10 @@ class Notification(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship("User", backref="notifications")
+
+    @property
+    def display_id(self):
+        return f"N{self.id:03d}"
 
 
 # ------------------------------------------------------------

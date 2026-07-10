@@ -23,14 +23,16 @@ def stars(n):
 def index():
     query = Review.query.filter_by(status="Approved")
 
-    # Optional filter: /reviews?service=Home Cleaning
+    # Optional filter: /reviews?service_id=1  (preferred) or ?service=Home Cleaning
     heading_service = None
+    service_id = request.args.get("service_id", type=int)
     service_name = request.args.get("service")
-    if service_name:
-        svc = Service.query.filter_by(name=service_name).first()
-        if svc:
-            heading_service = svc
-            query = query.filter_by(service_id=svc.id)
+    if service_id:
+        heading_service = Service.query.get(service_id)
+    elif service_name:
+        heading_service = Service.query.filter_by(name=service_name).first()
+    if heading_service:
+        query = query.filter_by(service_id=heading_service.id)
 
     reviews = query.order_by(Review.created_at.desc()).all()
     avg = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else 0.0
@@ -59,5 +61,14 @@ def submit():
         rating=rating, review_description=text, status="Pending",
     ))
     db.session.commit()
+
+    # Let the customer know it's in, with a link back to that service's reviews.
+    from ..notifications.routes import create_notification
+    create_notification(
+        current_user.id,
+        f"Thanks! Your review for {service.name} is awaiting approval.",
+        link=url_for("reviews.index", service=service.name),
+    )
+
     flash("Thanks for your review! It will appear once it's approved.", "success")
     return redirect(url_for("reviews.index", service=service.name))

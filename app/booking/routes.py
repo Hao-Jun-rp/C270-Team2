@@ -65,6 +65,7 @@ def add_booking():
             current_user.id,
             f"Your booking for {service.name} on {date} at {time} "
             f"has been received and is pending confirmation.",
+            link=url_for("booking.index"),
         )
 
         flash(f"Booking for {service.name} requested — we'll confirm it shortly!", "success")

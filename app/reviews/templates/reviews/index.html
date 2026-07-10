@@ -34,7 +34,7 @@
   {% endfor %}
 </div>
 
-<div class="card card-raised" style="margin-top:24px">
+<div class="card card-raised" id="leave-review" style="margin-top:24px">
   <h3>Leave a review</h3>
   {% if current_user.is_authenticated %}
     <form action="{{ url_for('reviews.submit') }}" method="POST" style="margin-top:12px">
@@ -64,4 +64,16 @@
     <p class="text-muted" style="margin-top:8px">Please <a href="{{ url_for('auth.login') }}">log in</a> to leave a review.</p>
   {% endif %}
 </div>
+<script>
+  // If we arrived from a "Write a review" link, scroll to and highlight the form.
+  if (window.location.hash === "#leave-review") {
+    var box = document.getElementById("leave-review");
+    if (box) {
+      box.scrollIntoView({ behavior: "smooth", block: "center" });
+      box.style.outline = "2px solid var(--color-primary)";
+      var ta = box.querySelector("textarea");
+      if (ta) setTimeout(function(){ ta.focus(); }, 400);
+    }
+  }
+</script>
 {% endblock %}

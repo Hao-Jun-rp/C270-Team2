@@ -125,8 +125,9 @@
             var list = document.getElementById('bellList');
             if (data.count > 0) {
               dot.classList.add('show');
+              var fallback = "{{ url_for('notifications.index') }}";
               list.innerHTML = data.items.map(function(n){
-                return '<a class="bell-item" href="{{ url_for("notifications.index") }}">' +
+                return '<a class="bell-item" href="' + (n.link || fallback) + '">' +
                        n.message + '</a>';
               }).join('');
             } else {

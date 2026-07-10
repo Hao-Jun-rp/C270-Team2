@@ -144,6 +144,7 @@ class Notification(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     message = db.Column(db.String(255), nullable=False)
     is_read = db.Column(db.Boolean, nullable=False, default=False)
+    link = db.Column(db.String(200), nullable=True)   # where clicking it takes you
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship("User", backref="notifications")

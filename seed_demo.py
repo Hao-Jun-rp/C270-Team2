@@ -15,6 +15,7 @@ All demo users log in with password:  password123
 from datetime import datetime
 from app import create_app
 from app.extensions import db
+from urllib.parse import quote
 from app.models import User, Service, Booking, Review, Notification
 
 
@@ -67,17 +68,23 @@ REVIEWS = [
     (0, 5, 4, "Solid job", "Good clean overall, would have liked more time on the grout.", None, "Pending"),
 ]
 
-# (user_idx, message, is_read)
+# helpers for notification links
+def _rev(name, form=False):
+    u = "/reviews?service=" + quote(name)
+    return u + "#leave-review" if form else u
+_BOOK = "/booking/"
+
+# (user_idx, message, is_read, link)
 NOTIFICATIONS = [
-    (1, "Your Home Cleaning on 18 Jul is confirmed. See you then!", False),
-    (1, "Thanks for reviewing Deep Cleaning — your feedback is live.", True),
-    (4, "Your Deep Cleaning booking on 22 Jul is awaiting confirmation.", False),
-    (4, "Your review for Office Cleaning is now published.", True),
-    (3, "Your Move-Out Cleaning booking on 25 Jul is awaiting confirmation.", False),
-    (3, "Your review for Kitchen & Bathroom is now published.", True),
-    (2, "Your Eco Cleaning on 20 Jul is confirmed.", False),
-    (0, "Your review for Kitchen & Bathroom is awaiting approval.", False),
-    (4, "Your Home Cleaning is complete — leave a review to help others!", True),
+    (1, "Your Home Cleaning on 18 Jul is confirmed. See you then!", False, _BOOK),
+    (1, "Thanks for reviewing Deep Cleaning - your feedback is live.", True, _rev("Deep Cleaning")),
+    (4, "Your Deep Cleaning booking on 22 Jul is received and pending confirmation.", False, _BOOK),
+    (4, "Your review for Office Cleaning is now published.", True, _rev("Office Cleaning")),
+    (3, "Your Move-Out Cleaning booking on 25 Jul is received and pending confirmation.", False, _BOOK),
+    (3, "Your review for Kitchen & Bathroom is now published.", True, _rev("Kitchen & Bathroom")),
+    (2, "Your Eco Cleaning on 20 Jul is confirmed.", False, _BOOK),
+    (0, "Your review for Kitchen & Bathroom is awaiting approval.", False, _rev("Kitchen & Bathroom")),
+    (4, "Your Home Cleaning is complete - leave a review to help others!", False, _rev("Home Cleaning", form=True)),
 ]
 
 
@@ -125,8 +132,8 @@ def run():
         db.session.commit()
 
         if Notification.query.count() == 0:
-            for ui, msg, is_read in NOTIFICATIONS:
-                db.session.add(Notification(user_id=users[ui].id, message=msg, is_read=is_read))
+            for ui, msg, is_read, link in NOTIFICATIONS:
+                db.session.add(Notification(user_id=users[ui].id, message=msg, is_read=is_read, link=link))
             db.session.commit()
 
         print("Demo data ready:",

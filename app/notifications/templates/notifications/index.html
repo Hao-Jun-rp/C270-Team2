@@ -2,9 +2,102 @@
 {% block title %}Notifications &middot; Sparkle{% endblock %}
 {% block content %}
   <h1>Notifications</h1>
-  <div class="card" style="margin-top:24px">
-    <h3>Hao Jun builds this feature here</h3>
-    <p class="text-muted">This is your starting page. Add your routes in
-       routes.py and your pages in this templates folder.</p>
+
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    <button class="btn" onclick="sendDemo(this)">Send test notification</button>
+    <button class="btn btn-ghost" onclick="sendDemoBooking(this)">Simulate a booking</button>
+    <button class="btn btn-ghost" onclick="sendDemoReminder(this)">Simulate reminder (5s delay)</button>
   </div>
+
+  {% if notifications %}
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:24px">
+      {% for n in notifications %}
+        <div class="toast" id="notif-{{ n.id }}">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+              {% if not n.is_read %}
+                <span class="pill" style="padding:3px 10px;font-size:.75rem">New</span>
+              {% endif %}
+            </div>
+            <div style="font-size:var(--text-small)">{{ n.message }}</div>
+            <div class="text-muted" style="font-size:var(--text-caption);margin-top:4px">
+              {{ n.created_at.strftime('%d %b %Y, %I:%M %p') }}
+            </div>
+          </div>
+          {% if not n.is_read %}
+            <button class="btn btn-ghost" style="padding:8px 14px;font-size:.8125rem"
+                    onclick="markRead({{ n.id }}, this)">Mark read</button>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card" style="margin-top:24px">
+      <h3>You're all caught up &#10024;</h3>
+      <p class="text-muted">Nothing here yet — notifications about your bookings will show up on this page.</p>
+    </div>
+  {% endif %}
+
+  <script>
+    function sendDemoReminder(btn) {
+      let secondsLeft = 5;
+      btn.disabled = true;
+      const originalText = "Simulate reminder (5s delay)";
+      btn.textContent = `Sending in ${secondsLeft}s...`;
+
+      const tick = setInterval(() => {
+        secondsLeft -= 1;
+        if (secondsLeft > 0) {
+          btn.textContent = `Sending in ${secondsLeft}s...`;
+        } else {
+          clearInterval(tick);
+          btn.textContent = "Sending now...";
+          fetch("{{ url_for('notifications.demo_reminder') }}", { method: "POST" })
+            .then(r => r.json())
+            .then(() => location.reload())
+            .catch(() => {
+              btn.disabled = false;
+              btn.textContent = originalText;
+            });
+        }
+      }, 1000);
+    }
+
+    function sendDemoBooking(btn) {
+      btn.disabled = true;
+      btn.textContent = "Booking...";
+      fetch("{{ url_for('notifications.demo_booking') }}", { method: "POST" })
+        .then(r => r.json())
+        .then(() => location.reload())
+        .catch(() => {
+          btn.disabled = false;
+          btn.textContent = "Simulate a booking";
+        });
+    }
+
+    function sendDemo(btn) {
+      btn.disabled = true;
+      btn.textContent = "Sending...";
+      fetch("{{ url_for('notifications.demo') }}", { method: "POST" })
+        .then(r => r.json())
+        .then(() => location.reload())
+        .catch(() => {
+          btn.disabled = false;
+          btn.textContent = "Send test notification";
+        });
+    }
+
+    function markRead(id, btn) {
+      fetch(`/notifications/api/${id}/read`, { method: "POST" })
+        .then(r => r.json())
+        .then(() => {
+          const el = document.getElementById(`notif-${id}`);
+          if (btn) btn.remove();
+          if (el) {
+            const badge = el.querySelector('.pill');
+            if (badge) badge.remove();
+          }
+        });
+    }
+  </script>
 {% endblock %}

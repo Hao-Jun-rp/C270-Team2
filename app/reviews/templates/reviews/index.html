@@ -1,34 +1,67 @@
 {% extends "base.html" %}
 {% block title %}Reviews &middot; Sparkle{% endblock %}
-
 {% block content %}
-<h1>How did we do?</h1>
-<p class="text-muted">Rate your clean and help us keep every visit fresh.</p>
 
-<div class="card" style="margin-top:24px">
-  <h2>4.9 ★★★★★</h2>
-  <p class="text-muted">Based on 212 happy customers</p>
+{% if heading_service %}
+  <h1>Reviews for {{ heading_service.name }}</h1>
+{% else %}
+  <h1>What our customers say</h1>
+{% endif %}
+<p class="text-muted">Real reviews from real cleans.</p>
+
+<div class="card card-raised" style="margin-top:24px">
+  {% if count %}
+    <h2>{{ avg }} {{ stars(avg | round | int) }}</h2>
+    <p class="text-muted">Based on {{ count }} approved review{{ 's' if count != 1 else '' }}</p>
+  {% else %}
+    <h2>No reviews yet</h2>
+    <p class="text-muted">Be the first to leave one below.</p>
+  {% endif %}
 
   {% for review in reviews %}
     <div class="card" style="margin-top:16px">
-      <strong>{{ review.name }}</strong>
-      <span style="float:right;color:#FFC95C">{{ review.stars }}</span>
-      <p>{{ review.text }}</p>
+      <strong>{{ review.user.name }}</strong>
+      <span style="float:right;color:#FFC95C">{{ stars(review.rating) }}</span>
+      <div class="text-muted" style="font-size:.8125rem">{{ review.service.name }}</div>
+      <p style="margin-top:8px">{{ review.review_description }}</p>
+      {% if review.staff_reply %}
+        <div class="card" style="margin-top:8px;background:var(--color-foam)">
+          <strong style="font-size:.8125rem">Sparkle replied</strong>
+          <p style="margin-top:4px">{{ review.staff_reply }}</p>
+        </div>
+      {% endif %}
     </div>
   {% endfor %}
+</div>
 
-  <form action="{{ url_for('reviews.submit') }}" method="POST" style="margin-top:24px">
-    <label>Your rating</label><br>
-    <input type="radio" name="rating" value="5" required> ★★★★★<br>
-    <input type="radio" name="rating" value="4"> ★★★★☆<br>
-    <input type="radio" name="rating" value="3"> ★★★☆☆<br>
-    <input type="radio" name="rating" value="2"> ★★☆☆☆<br>
-    <input type="radio" name="rating" value="1"> ★☆☆☆☆<br><br>
+<div class="card card-raised" style="margin-top:24px">
+  <h3>Leave a review</h3>
+  {% if current_user.is_authenticated %}
+    <form action="{{ url_for('reviews.submit') }}" method="POST" style="margin-top:12px">
+      <label style="font-weight:600;font-size:.8125rem">Service</label><br>
+      <select class="input" name="service_id" required style="width:100%;margin:6px 0 16px">
+        <option value="">Choose a service…</option>
+        {% for s in services %}
+        <option value="{{ s.id }}" {% if heading_service and heading_service.id == s.id %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
 
-    <label>Your review</label><br>
-    <textarea name="review" placeholder="Tell us what went well..." required></textarea><br><br>
+      <label style="font-weight:600;font-size:.8125rem">Your rating</label><br>
+      <div style="margin:6px 0 16px">
+        <label><input type="radio" name="rating" value="5" required> ★★★★★</label><br>
+        <label><input type="radio" name="rating" value="4"> ★★★★☆</label><br>
+        <label><input type="radio" name="rating" value="3"> ★★★☆☆</label><br>
+        <label><input type="radio" name="rating" value="2"> ★★☆☆☆</label><br>
+        <label><input type="radio" name="rating" value="1"> ★☆☆☆☆</label>
+      </div>
 
-    <button type="submit">★ Leave a review</button>
-  </form>
+      <label style="font-weight:600;font-size:.8125rem">Your review</label><br>
+      <textarea class="input" name="review" placeholder="Tell us what went well..." required style="width:100%;margin:6px 0 16px;resize:vertical" rows="3"></textarea><br>
+
+      <button type="submit" class="btn btn-primary">Leave a review</button>
+    </form>
+  {% else %}
+    <p class="text-muted" style="margin-top:8px">Please <a href="{{ url_for('auth.login') }}">log in</a> to leave a review.</p>
+  {% endif %}
 </div>
 {% endblock %}

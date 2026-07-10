@@ -1,79 +1,43 @@
 {% extends "base.html" %}
-
-{% block title %}
-Dashboard · Sparkle
-{% endblock %}
-
+{% block title %}Dashboard · Sparkle{% endblock %}
 {% block content %}
 
-<h1>My Dashboard</h1>
-
-<p class="text-muted">
-    Welcome back. Here is an overview of your bookings.
-</p>
+<h1>My dashboard</h1>
+<p class="text-muted">Welcome back. Here's an overview of your bookings.</p>
 
 <br>
-
 
 <div class="card card-raised">
-
-    <h3>Booking Summary</h3>
-
-    <p>Pending: 1</p>
-    <p>Confirmed: 2</p>
-    <p>Completed: 0</p>
-
+  <h3>Booking summary</h3>
+  <p>Pending: {{ summary.Pending }}</p>
+  <p>Confirmed: {{ summary.Confirmed }}</p>
+  <p>Completed: {{ summary.Completed }}</p>
 </div>
 
 <br>
 
+<h2>Recent bookings</h2>
 
-<h2>Upcoming Bookings</h2>
-
-
-{% for booking in bookings %}
-
-<div class="card" style="margin-bottom:20px">
-
-    <h3>{{ booking.service }}</h3>
-
-    <p class="text-muted">
-
-        Date: {{ booking.date }}
-
-    </p>
-
-
-    {% if booking.status == "Pending" %}
-
-        <span class="pill">
-
-            Pending
-
-        </span>
-
-    {% else %}
-
-        <span class="pill pill-eco">
-
-            Confirmed
-
-        </span>
-
-    {% endif %}
-
-</div>
-
-{% endfor %}
+{% if bookings %}
+  {% for booking in bookings %}
+  <div class="card" style="margin-bottom:20px">
+    <h3>{{ booking.service.name }}</h3>
+    <p class="text-muted">Date: {{ booking.date }} · {{ booking.time }}</p>
+    <span class="pill
+      {% if booking.status == 'Confirmed' %}pill-eco
+      {% elif booking.status == 'Completed' %}pill-eco{% endif %}">
+      {{ booking.status }}
+    </span>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="card">
+    <p class="text-muted" style="margin-bottom:16px">You have no bookings yet.</p>
+    <a class="btn btn-primary" href="{{ url_for('listings.index') }}">Browse services</a>
+  </div>
+{% endif %}
 
 <br>
-
-
-<a class="btn btn-primary"
-   href="{{ url_for('booking.index') }}">
-
-    View All My Bookings
-
-</a>
+<a class="btn btn-primary" href="{{ url_for('booking.index') }}">View all my bookings</a>
 
 {% endblock %}

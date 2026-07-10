@@ -33,14 +33,14 @@
       {% for b in bookings %}
       <div class="card booking-card"
         data-status="{{ b.status }}"
-        onclick="openDetail('{{ b.id }}','{{ b.service }}','{{ b.date }}','{{ b.time }}','{{ b.address }}','{{ b.notes }}','{{ b.status }}')"
+        onclick="openDetail('{{ b.id }}','{{ b.service.name }}','{{ b.date }}','{{ b.time }}','{{ b.address }}','{{ b.notes or '' }}','{{ b.status }}')"
         style="padding:20px;margin-bottom:12px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:.15s ease">
         <div style="background:var(--color-foam);border-radius:8px;padding:10px 14px;text-align:center;min-width:52px;flex:0 0 auto">
           <div style="font-family:var(--font-head);font-weight:700;font-size:1.125rem;color:var(--color-primary);line-height:1">{{ b.date.split('-')[2] }}</div>
           <div style="font-size:.625rem;font-weight:600;text-transform:uppercase;color:var(--color-primary)">{{ b.date.split('-')[1] }}</div>
         </div>
         <div style="flex:1;min-width:0">
-          <div style="font-family:var(--font-head);font-weight:600">{{ b.service }}</div>
+          <div style="font-family:var(--font-head);font-weight:600">{{ b.service.name }}</div>
           <div style="font-size:.8125rem;color:var(--color-slate)">{{ b.time }} · {{ b.address }}</div>
         </div>
         <div style="font-size:.6875rem;font-weight:700;text-transform:uppercase;padding:5px 10px;border-radius:999px;flex:0 0 auto;

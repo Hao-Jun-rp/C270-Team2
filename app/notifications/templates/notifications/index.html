@@ -2,12 +2,7 @@
 {% block title %}Notifications &middot; Sparkle{% endblock %}
 {% block content %}
   <h1>Notifications</h1>
-
-  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
-    <button class="btn" onclick="sendDemo(this)">Send test notification</button>
-    <button class="btn btn-ghost" onclick="sendDemoBooking(this)">Simulate a booking</button>
-    <button class="btn btn-ghost" onclick="sendDemoReminder(this)">Simulate reminder (5s delay)</button>
-  </div>
+  <p class="text-muted">Updates about your bookings show up here.</p>
 
   {% if notifications %}
     <div style="display:flex;flex-direction:column;gap:12px;margin-top:24px">
@@ -24,10 +19,14 @@
               {{ n.created_at.strftime('%d %b %Y, %I:%M %p') }}
             </div>
           </div>
-          {% if not n.is_read %}
+          <div style="display:flex;gap:8px">
+            {% if not n.is_read %}
+              <button class="btn btn-ghost" style="padding:8px 14px;font-size:.8125rem"
+                      onclick="markRead({{ n.id }}, this)">Mark read</button>
+            {% endif %}
             <button class="btn btn-ghost" style="padding:8px 14px;font-size:.8125rem"
-                    onclick="markRead({{ n.id }}, this)">Mark read</button>
-          {% endif %}
+                    onclick="dismiss({{ n.id }})">Dismiss</button>
+          </div>
         </div>
       {% endfor %}
     </div>
@@ -39,64 +38,21 @@
   {% endif %}
 
   <script>
-    function sendDemoReminder(btn) {
-      let secondsLeft = 5;
-      btn.disabled = true;
-      const originalText = "Simulate reminder (5s delay)";
-      btn.textContent = `Sending in ${secondsLeft}s...`;
-
-      const tick = setInterval(() => {
-        secondsLeft -= 1;
-        if (secondsLeft > 0) {
-          btn.textContent = `Sending in ${secondsLeft}s...`;
-        } else {
-          clearInterval(tick);
-          btn.textContent = "Sending now...";
-          fetch("{{ url_for('notifications.demo_reminder') }}", { method: "POST" })
-            .then(r => r.json())
-            .then(() => location.reload())
-            .catch(() => {
-              btn.disabled = false;
-              btn.textContent = originalText;
-            });
-        }
-      }, 1000);
-    }
-
-    function sendDemoBooking(btn) {
-      btn.disabled = true;
-      btn.textContent = "Booking...";
-      fetch("{{ url_for('notifications.demo_booking') }}", { method: "POST" })
-        .then(r => r.json())
-        .then(() => location.reload())
-        .catch(() => {
-          btn.disabled = false;
-          btn.textContent = "Simulate a booking";
-        });
-    }
-
-    function sendDemo(btn) {
-      btn.disabled = true;
-      btn.textContent = "Sending...";
-      fetch("{{ url_for('notifications.demo') }}", { method: "POST" })
-        .then(r => r.json())
-        .then(() => location.reload())
-        .catch(() => {
-          btn.disabled = false;
-          btn.textContent = "Send test notification";
-        });
-    }
-
     function markRead(id, btn) {
       fetch(`/notifications/api/${id}/read`, { method: "POST" })
         .then(r => r.json())
         .then(() => {
           const el = document.getElementById(`notif-${id}`);
           if (btn) btn.remove();
-          if (el) {
-            const badge = el.querySelector('.pill');
-            if (badge) badge.remove();
-          }
+          if (el) { const b = el.querySelector('.pill'); if (b) b.remove(); }
+        });
+    }
+    function dismiss(id) {
+      fetch(`/notifications/api/${id}/delete`, { method: "POST" })
+        .then(r => r.json())
+        .then(() => {
+          const el = document.getElementById(`notif-${id}`);
+          if (el) el.remove();
         });
     }
   </script>

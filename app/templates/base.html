@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
   {% block head %}{% endblock %}
 </head>
-<body>
+<body{% if current_user.is_authenticated %} data-authenticated="true"{% endif %}>
   <header class="site-header">
     <a class="brand" href="{{ url_for('main.index') }}">Sparkle<span class="dot">.</span></a>
     {% if current_user.is_authenticated %}
@@ -20,23 +20,20 @@
     <div class="site-actions">
       {% if current_user.is_authenticated %}
 
-        <!-- 🔔 Notification bell (shell). Hao Jun fills the list inside. -->
+        <!-- 🔔 Notification bell -->
         <div class="bell-menu">
           <button class="bell-btn" id="bellBtn" onclick="toggleBell(event)" aria-label="Notifications">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
             </svg>
-            <!-- Add class "show" to this dot when there are unread notifications -->
             <span class="bell-dot" id="bellDot"></span>
           </button>
           <div class="bell-dropdown" id="bellDropdown" role="menu">
             <div class="bell-head">Notifications</div>
-            <!-- HAO JUN: loop your notifications here, e.g.
-                 {% for n in notifications %}
-                   <a class="bell-item" href="#">{{ n.message }}</a>
-                 {% endfor %}  -->
-            <div class="bell-empty">You're all caught up &#10024;</div>
+            <div id="bellList">
+              <div class="bell-empty">You're all caught up &#10024;</div>
+            </div>
             <a class="bell-seeall" href="{{ url_for('notifications.index') }}">See all</a>
           </div>
         </div>
@@ -117,6 +114,31 @@
     }
     document.addEventListener('click', closeAllMenus);
     document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSignOutModal(); });
+
+    // ---- Notification bell: poll for new notifications every 30s ----
+    if (document.body.dataset.authenticated === "true") {
+      function pollNotifications(){
+        fetch("{{ url_for('notifications.api_unread') }}")
+          .then(function(r){ return r.json(); })
+          .then(function(data){
+            var dot = document.getElementById('bellDot');
+            var list = document.getElementById('bellList');
+            if (data.count > 0) {
+              dot.classList.add('show');
+              list.innerHTML = data.items.map(function(n){
+                return '<a class="bell-item" href="{{ url_for("notifications.index") }}">' +
+                       n.message + '</a>';
+              }).join('');
+            } else {
+              dot.classList.remove('show');
+              list.innerHTML = '<div class="bell-empty">You\'re all caught up &#10024;</div>';
+            }
+          })
+          .catch(function(){ /* fail quietly, try again next interval */ });
+      }
+      pollNotifications();
+      setInterval(pollNotifications, 30000);
+    }
   </script>
 </body>
 </html>

@@ -33,7 +33,7 @@
       {% for b in bookings %}
       <div class="card booking-card"
         data-status="{{ b.status }}"
-        onclick="openDetail('{{ b.id }}','{{ b.service.name }}','{{ b.date }}','{{ b.time }}','{{ b.address }}','{{ b.notes or '' }}','{{ b.status }}')"
+        onclick="openDetail('{{ b.id }}','{{ b.service.name }}','{{ b.date }}','{{ b.time }}','{{ b.address }}','{{ b.notes or '' }}','{{ b.status }}',{{ 'true' if b.service_id in reviewed_service_ids else 'false' }})"
         style="padding:20px;margin-bottom:12px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:.15s ease">
         <div style="background:var(--color-foam);border-radius:8px;padding:10px 14px;text-align:center;min-width:52px;flex:0 0 auto">
           <div style="font-family:var(--font-head);font-weight:700;font-size:1.125rem;color:var(--color-primary);line-height:1">{{ b.date.split('-')[2] }}</div>
@@ -50,13 +50,15 @@
           {% else %}background:#FFF4DE;color:#9a6b00;{% endif %}">
           {{ b.status }}
         </div>
-        {% if b.status == 'Completed' %}
+        {% if b.status == 'Completed' and b.service_id not in reviewed_service_ids %}
         <a href="{{ url_for('reviews.index', service=b.service.name, _anchor='leave-review') }}"
            onclick="event.stopPropagation()"
            class="btn btn-primary"
            style="padding:6px 12px;font-size:.75rem;flex:0 0 auto;text-decoration:none;white-space:nowrap">
           Write a review
         </a>
+        {% elif b.status == 'Completed' %}
+        <span class="pill" style="padding:5px 10px;font-size:.6875rem;flex:0 0 auto;white-space:nowrap">Reviewed</span>
         {% endif %}
         <div style="color:var(--color-steam);font-size:1.1rem;flex:0 0 auto">›</div>
       </div>
@@ -121,7 +123,7 @@ function filterBookings() {
   document.getElementById('countLabel').textContent = visible + ' booking' + (visible !== 1 ? 's' : '');
 }
 
-function openDetail(id, service, date, time, address, notes, status) {
+function openDetail(id, service, date, time, address, notes, status, alreadyReviewed) {
   document.getElementById('dService').textContent = service;
   document.getElementById('dDate').textContent = date;
   document.getElementById('dTime').textContent = time;
@@ -139,9 +141,10 @@ function openDetail(id, service, date, time, address, notes, status) {
   s.style.background = bg;
   s.style.color = color;
 
-  // Show "Write a review" only for completed bookings, linked to that service.
+  // Show "Write a review" only for completed bookings for a service the
+  // user hasn't already reviewed.
   const review = document.getElementById('dReview');
-  if (status === 'Completed') {
+  if (status === 'Completed' && !alreadyReviewed) {
     const base = "{{ url_for('reviews.index') }}";
     review.href = base + '?service=' + encodeURIComponent(service) + '#leave-review';
     review.style.display = 'block';

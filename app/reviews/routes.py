@@ -16,7 +16,7 @@ reviews_bp = Blueprint("reviews", __name__, url_prefix="/reviews", template_fold
 
 def stars(n):
     n = int(n or 0)
-    return "\u2605" * n + "\u2606" * (5 - n)
+    return "★" * n + "☆" * (5 - n)
 
 
 @reviews_bp.route("/")
@@ -38,10 +38,22 @@ def index():
     avg = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else 0.0
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
 
+    # The logged-in user's OWN reviews that aren't Approved yet (Pending/Hidden).
+    # These are deliberately excluded from the public `reviews` list above, so
+    # without this a customer who just submitted a review sees nothing and
+    # can't tell whether it actually saved. Show it to them, clearly labeled.
+    my_pending = []
+    if current_user.is_authenticated:
+        mine = (Review.query.filter_by(user_id=current_user.id)
+                .filter(Review.status != "Approved"))
+        if heading_service:
+            mine = mine.filter_by(service_id=heading_service.id)
+        my_pending = mine.order_by(Review.created_at.desc()).all()
+
     return render_template("reviews/index.html",
                            reviews=reviews, avg=avg, count=len(reviews),
                            services=services, heading_service=heading_service,
-                           stars=stars)
+                           my_pending=my_pending, stars=stars)
 
 
 @reviews_bp.route("/submit", methods=["POST"])
@@ -55,6 +67,11 @@ def submit():
     if not service or not rating or rating < 1 or rating > 5 or not text:
         flash("Please choose a service, a star rating, and write a short review.", "error")
         return redirect(url_for("reviews.index"))
+
+    already = Review.query.filter_by(user_id=current_user.id, service_id=service.id).first()
+    if already:
+        flash(f"You've already reviewed {service.name}.", "error")
+        return redirect(url_for("reviews.index", service=service.name))
 
     db.session.add(Review(
         user_id=current_user.id, service_id=service.id,

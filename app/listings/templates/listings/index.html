@@ -172,12 +172,18 @@
 
             <div style="margin-top:15px;">
 
+                {% if review_counts[service.id] %}
                 <p style="color:#F4B400; font-size:18px; margin-bottom:5px;">
-                    ★★★★★ {{ service.rating }}
+                    {{ stars(service.rating | round | int) }} {{ service.rating }}
                 </p>
                 <p class="text-muted">
-                    Trusted by hundreds of happy customers
+                    Based on {{ review_counts[service.id] }} review{{ 's' if review_counts[service.id] != 1 else '' }}
                 </p>
+                {% else %}
+                <p style="color:var(--color-steam); font-size:14px; margin-bottom:5px;">
+                    No reviews yet
+                </p>
+                {% endif %}
 
                 <p>
                     💲 <strong>From ${{ service.price }}</strong>

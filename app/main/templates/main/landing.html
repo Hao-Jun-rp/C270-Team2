@@ -104,7 +104,13 @@
         <a class="btn btn-primary" href="{{ url_for('auth.register') }}" style="font-size:16px;padding:14px 28px">Book a clean</a>
         <a class="btn btn-ghost" href="{{ url_for('listings.index') }}" style="font-size:16px;padding:14px 28px">See services</a>
       </div>
-      <div class="lp-rating"><span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> Rated 4.9 by thousands of happy homes</div>
+      <div class="lp-rating">
+        {% if stats.review_count %}
+          <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> Rated {{ stats.avg_rating }} from {{ stats.review_count }} real review{{ 's' if stats.review_count != 1 else '' }}
+        {% else %}
+          <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> Be the first to book and review us
+        {% endif %}
+      </div>
     </div>
     <div class="lp-art">
       <div class="lp-blob"></div>
@@ -113,13 +119,17 @@
           <div class="lp-ic green">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="#2FB36B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <div><div class="t">Booking confirmed</div><div class="d">Tomorrow, 10:00 AM</div></div>
+          <div><div class="t">Booking confirmed</div><div class="d">Real-time confirmations</div></div>
         </div>
       </div>
       <div class="lp-card c2">
         <div class="row">
           <div class="lp-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 6L20 9l-5 1.5L12 17l-3-6.5L4 9l5.6-1z" fill="#14B8A6"/></svg></div>
-          <div><div class="t">Deep Clean</div><div class="d">4.9 &#9733; &middot; 212 reviews</div></div>
+          {% if top_service %}
+            <div><div class="t">{{ top_service.name }}</div><div class="d">{{ top_service.rating }} &#9733; &middot; {{ top_service_reviews }} review{{ 's' if top_service_reviews != 1 else '' }}</div></div>
+          {% else %}
+            <div><div class="t">Top rated service</div><div class="d">Coming soon</div></div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -128,9 +138,9 @@
   <!-- STATS -->
   <section>
     <div class="lp-stats">
-      <div class="lp-stat"><div class="n">12,000+</div><div class="l">cleans delivered</div></div>
-      <div class="lp-stat"><div class="n">4.9&#9733;</div><div class="l">average rating</div></div>
-      <div class="lp-stat"><div class="n">100%</div><div class="l">vetted &amp; insured</div></div>
+      <div class="lp-stat"><div class="n">{{ stats.cleans_delivered }}</div><div class="l">cleans delivered</div></div>
+      <div class="lp-stat"><div class="n">{{ stats.avg_rating if stats.review_count else '—' }}{{ '&#9733;'|safe if stats.review_count else '' }}</div><div class="l">average rating</div></div>
+      <div class="lp-stat"><div class="n">{{ stats.active_services }}</div><div class="l">services offered</div></div>
       <div class="lp-stat"><div class="n">60 sec</div><div class="l">to book</div></div>
     </div>
   </section>
@@ -154,28 +164,25 @@
       <h2>Services for every space</h2>
       <p>Transparent, flat pricing. What you see is what you pay.</p>
     </div>
+    {% set icons = [
+      '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" stroke="#0C7D80" stroke-width="1.8" stroke-linejoin="round"/>',
+      '<path d="M12 3l2.4 6L21 9l-5 1.5L12 17l-4-6.5L3 9l6.6-1z" fill="none" stroke="#0C7D80" stroke-width="1.8" stroke-linejoin="round"/>',
+      '<rect x="3" y="4" width="18" height="16" rx="2" stroke="#0C7D80" stroke-width="1.8"/><path d="M3 9h18" stroke="#0C7D80" stroke-width="1.8"/>',
+      '<path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" stroke="#0C7D80" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 8V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3" stroke="#0C7D80" stroke-width="1.8"/>',
+    ] %}
+    {% if services %}
     <div class="lp-services">
+      {% for s in services %}
       <div class="lp-svc">
-        <div class="sic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" stroke="#0C7D80" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
-        <h3>Home Clean</h3><p>A thorough regular clean for your HDB, condo or apartment.</p>
-        <div class="price">from $45 <span>/ visit</span></div>
+        <div class="sic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none">{{ icons[loop.index0 % icons|length] | safe }}</svg></div>
+        <h3>{{ s.name }}</h3><p>{{ s.description }}</p>
+        <div class="price">${{ '%g'|format(s.price) }} <span>/ visit</span></div>
       </div>
-      <div class="lp-svc">
-        <div class="sic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3l2.4 6L21 9l-5 1.5L12 17l-4-6.5L3 9l6.6-1z" fill="none" stroke="#0C7D80" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
-        <h3>Deep Clean</h3><p>Top-to-bottom detail for homes that need a real refresh.</p>
-        <div class="price">from $89 <span>/ visit</span></div>
-      </div>
-      <div class="lp-svc">
-        <div class="sic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="#0C7D80" stroke-width="1.8"/><path d="M3 9h18" stroke="#0C7D80" stroke-width="1.8"/></svg></div>
-        <h3>Office</h3><p>Keep your workspace spotless with regular office cleaning.</p>
-        <div class="price">from $60 <span>/ visit</span></div>
-      </div>
-      <div class="lp-svc">
-        <div class="sic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" stroke="#0C7D80" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 8V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3" stroke="#0C7D80" stroke-width="1.8"/></svg></div>
-        <h3>Move-out</h3><p>Get your deposit back with a spotless end-of-tenancy clean.</p>
-        <div class="price">from $120 <span>/ visit</span></div>
-      </div>
+      {% endfor %}
     </div>
+    {% else %}
+    <p class="text-muted" style="text-align:center;margin-bottom:28px">Services will appear here once they're added.</p>
+    {% endif %}
     <div class="lp-more"><a class="btn btn-ghost" href="{{ url_for('listings.index') }}">See all services</a></div>
   </section>
 
@@ -209,23 +216,19 @@
     <div class="lp-head">
       <h2>Loved by homes across Singapore</h2>
     </div>
+    {% if testimonials %}
     <div class="lp-quotes">
+      {% for r in testimonials %}
       <div class="lp-quote">
-        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p>"Booked in two minutes and came home to a spotless flat. Honestly, I'm never scrubbing my own floors again."</p>
-        <div class="who"><div class="qa">AT</div><div><b>Amirah T.</b><span>Tampines</span></div></div>
+        <div class="stars">{% for i in range(5) %}{% if i < r.rating %}&#9733;{% else %}&#9734;{% endif %}{% endfor %}</div>
+        <p>&quot;{{ r.review_description }}&quot;</p>
+        <div class="who"><div class="qa">{{ r.user.initials }}</div><div><b>{{ r.user.name }}</b><span>{{ r.service.name }}</span></div></div>
       </div>
-      <div class="lp-quote">
-        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p>"The deep clean was incredible. Every corner sparkled and the cleaner was so friendly and professional."</p>
-        <div class="who"><div class="qa">JL</div><div><b>Jason L.</b><span>Bishan</span></div></div>
-      </div>
-      <div class="lp-quote">
-        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p>"Move-out clean saved my whole deposit. Fast, easy to book, and the result was flawless. Highly recommend."</p>
-        <div class="who"><div class="qa">PK</div><div><b>Priya K.</b><span>Clementi</span></div></div>
-      </div>
+      {% endfor %}
     </div>
+    {% else %}
+    <p class="text-muted" style="text-align:center;margin-bottom:28px">No reviews yet — be the first to book and share your experience.</p>
+    {% endif %}
   </section>
 
   <!-- FINAL CTA -->

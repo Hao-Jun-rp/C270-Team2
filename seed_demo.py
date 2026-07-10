@@ -57,9 +57,14 @@ BOOKINGS = [
 ]
 
 # (user_idx, service_idx, rating, title, description, staff_reply, status)
+# NOTE: Aisha (user 4) deliberately has NO review for Home Cleaning (service 0),
+# even though her booking of it is Completed (see BOOKINGS below) - this is what
+# lets the "Write a review" button and the "leave a review" notification below
+# actually have something to demo. Every OTHER completed booking already has a
+# matching review, so don't add one here without also adding a fresh unreviewed
+# completed booking, or the "write a review" flow won't have anything to show.
 REVIEWS = [
     (1, 0, 5, "Spotless!", "Arrived on time and my flat felt brand new afterwards.", None, "Approved"),
-    (4, 0, 4, "Very thorough", "Great job overall, though arrived about 10 minutes late.", None, "Approved"),
     (1, 1, 5, "Worth every cent", "The deep clean was incredibly detailed, every corner done.", "Thanks Tristan, glad you loved it! — Sparkle Team", "Approved"),
     (4, 2, 4, "Office looks great", "Our meeting rooms have never been cleaner.", None, "Approved"),
     (3, 5, 5, "Kitchen sparkles", "Amazing attention to detail in the kitchen and bathrooms.", None, "Approved"),

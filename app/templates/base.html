@@ -127,9 +127,18 @@
               dot.classList.add('show');
               var fallback = "{{ url_for('notifications.index') }}";
               list.innerHTML = data.items.map(function(n){
-                return '<a class="bell-item" href="' + (n.link || fallback) + '">' +
+                return '<a class="bell-item" href="' + (n.link || fallback) + '" data-id="' + n.id + '">' +
                        n.message + '</a>';
               }).join('');
+              // Mark read before navigating, so the bell dot actually clears.
+              list.querySelectorAll('.bell-item').forEach(function(a){
+                a.addEventListener('click', function(e){
+                  e.preventDefault();
+                  var href = a.getAttribute('href');
+                  fetch('/notifications/api/' + a.dataset.id + '/read', { method: 'POST' })
+                    .finally(function(){ window.location = href; });
+                });
+              });
             } else {
               dot.classList.remove('show');
               list.innerHTML = '<div class="bell-empty">You\'re all caught up &#10024;</div>';

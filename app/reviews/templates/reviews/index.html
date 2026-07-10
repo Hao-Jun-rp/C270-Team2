@@ -34,6 +34,27 @@
   {% endfor %}
 </div>
 
+{% if my_pending %}
+<div class="card card-raised" style="margin-top:24px;border-left:3px solid var(--color-sunbeam)">
+  <h3>Your reviews awaiting approval</h3>
+  <p class="text-muted" style="font-size:.8125rem">These were submitted successfully and are saved — they'll show up above once Sparkle approves them.</p>
+  {% for review in my_pending %}
+    <div class="card" style="margin-top:16px">
+      <span class="pill" style="padding:3px 10px;font-size:.6875rem">{{ review.status }}</span>
+      <span style="float:right;color:#FFC95C">{{ stars(review.rating) }}</span>
+      <div class="text-muted" style="font-size:.8125rem;margin-top:4px">{{ review.service.name }}</div>
+      <p style="margin-top:8px">{{ review.review_description }}</p>
+      {% if review.staff_reply %}
+        <div class="card" style="margin-top:8px;background:var(--color-foam)">
+          <strong style="font-size:.8125rem">Sparkle replied</strong>
+          <p style="margin-top:4px">{{ review.staff_reply }}</p>
+        </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <div class="card card-raised" id="leave-review" style="margin-top:24px">
   <h3>Leave a review</h3>
   {% if current_user.is_authenticated %}

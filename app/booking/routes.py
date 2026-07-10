@@ -3,7 +3,6 @@ from flask_login import login_required, current_user
 
 booking_bp = Blueprint("booking", __name__, template_folder="templates", url_prefix="/booking")
 
-# Mock data — replace with real DB queries once Marcus adds the Booking table
 MOCK_BOOKINGS = [
     {
         "id": 1,
@@ -29,3 +28,8 @@ MOCK_BOOKINGS = [
 @login_required
 def index():
     return render_template("booking/index.html", bookings=MOCK_BOOKINGS)
+
+@booking_bp.route("/add")
+@login_required
+def add_booking():
+    return render_template("booking/addbooking.html")

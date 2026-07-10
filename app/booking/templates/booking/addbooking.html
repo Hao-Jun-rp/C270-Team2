@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Book a clean{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top:40px;padding-bottom:64px">
+
+  <div style="margin-bottom:32px">
+    <a href="/listings" style="font-size:.875rem;color:var(--color-slate);display:inline-flex;align-items:center;gap:6px;margin-bottom:16px">← Back to services</a>
+    <span style="font-family:var(--font-head);font-weight:600;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--color-primary);display:block">New booking</span>
+    <h1 style="margin-top:6px">Pick a time — we'll handle the rest.</h1>
+    <p style="color:var(--color-slate);max-width:46ch;margin:4px 0 0">You can cancel anytime, no fuss.</p>
+  </div>
+
+  <!-- Service -->
+  <div style="margin-bottom:24px">
+    <label class="field-label">Service</label>
+    <div style="display:flex;flex-wrap:wrap;gap:12px" id="serviceRow">
+      <div class="pill is-active" onclick="selectService(this,'Standard Clean',59)">🏠 Standard Clean — $59</div>
+      <div class="pill" onclick="selectService(this,'Eco Clean',69)" style="background:var(--color-leaf-soft);color:#1f8a52">🌿 Eco Clean — $69</div>
+      <div class="pill" onclick="selectService(this,'Deep Clean',89)">💧 Deep Clean — $89</div>
+      <div class="pill" onclick="selectService(this,'Move-out Clean',119)">📦 Move-out Clean — $119</div>
+    </div>
+  </div>
+
+  <!-- Date -->
+  <div class="card" style="padding:24px;margin-bottom:24px;max-width:480px">
+    <label class="field-label">Date</label>
+    <input type="date" class="input" id="dateInput" style="margin-bottom:4px">
+    <p id="dateError" style="display:none;color:var(--color-error);font-size:.8125rem;margin:6px 0 0">Please pick today or a future date.</p>
+
+    <label class="field-label" style="margin-top:16px">Time slot</label>
+    <select class="input" id="timeInput">
+      <option value="">Pick a time slot</option>
+      <option>08:00–09:00</option>
+      <option>09:00–10:00</option>
+      <option>10:00–11:00</option>
+      <option>11:00–12:00</option>
+      <option>13:00–14:00</option>
+      <option>14:00–15:00</option>
+      <option>15:00–16:00</option>
+      <option>16:00–17:00</option>
+    </select>
+  </div>
+
+  <!-- Address + notes -->
+  <div class="card" style="padding:24px;margin-bottom:32px;max-width:480px">
+    <label class="field-label">Address</label>
+    <input type="text" class="input" id="addressInput" placeholder="e.g. 12 Orchard Road, Singapore" style="margin-bottom:16px">
+    <label class="field-label">Notes (optional)</label>
+    <input type="text" class="input" id="notesInput" placeholder="e.g. Bring eco products, focus on kitchen">
+  </div>
+
+  <!-- Summary -->
+  <div class="card" style="padding:24px;max-width:480px;margin-bottom:24px;background:var(--color-foam);border:none">
+    <div style="font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:12px">Booking summary</div>
+    <div style="display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:8px">
+      <span style="color:var(--color-slate)">Service</span>
+      <span id="sumService" style="font-weight:600">Standard Clean</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:8px">
+      <span style="color:var(--color-slate)">Date</span>
+      <span id="sumDate" style="font-weight:600">—</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:16px">
+      <span style="color:var(--color-slate)">Time</span>
+      <span id="sumTime" style="font-weight:600">—</span>
+    </div>
+    <div style="height:1px;background:var(--color-mist);margin-bottom:16px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="color:var(--color-slate);font-size:.875rem">Total</span>
+      <span id="sumPrice" style="font-family:var(--font-head);font-weight:700;font-size:1.5rem;color:var(--color-primary)">$59</span>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="confirmBooking()" style="min-width:200px">Confirm booking</button>
+
+  <!-- Toast -->
+  <div id="toast" style="display:none;margin-top:24px" class="toast">
+    <span>✅</span>
+    <div>
+      <strong style="font-family:var(--font-head);font-size:.875rem">You're all set!</strong>
+      <p id="toastMsg" style="margin:0;font-size:.8125rem;color:var(--color-slate)"></p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Set min date to today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('dateInput').setAttribute('min', today);
+
+let selectedService = 'Standard Clean', selectedPrice = 59;
+
+function selectService(el, name, price) {
+  document.querySelectorAll('#serviceRow .pill').forEach(p => {
+    p.style.background = '';
+    p.style.color = '';
+  });
+  el.style.background = 'var(--color-primary)';
+  el.style.color = '#fff';
+  selectedService = name;
+  selectedPrice = price;
+  document.getElementById('sumService').textContent = name;
+  document.getElementById('sumPrice').textContent = '$' + price;
+}
+
+document.getElementById('dateInput').addEventListener('change', function() {
+  const val = this.value;
+  const err = document.getElementById('dateError');
+  if (val < today) {
+    err.style.display = 'block';
+    this.value = '';
+    document.getElementById('sumDate').textContent = '—';
+  } else {
+    err.style.display = 'none';
+    document.getElementById('sumDate').textContent = val;
+  }
+});
+
+document.getElementById('timeInput').addEventListener('change', function() {
+  document.getElementById('sumTime').textContent = this.value || '—';
+});
+
+function confirmBooking() {
+  const date = document.getElementById('dateInput').value;
+  const time = document.getElementById('timeInput').value;
+  const address = document.getElementById('addressInput').value;
+
+  if (!date || date < today) {
+    document.getElementById('dateError').style.display = 'block';
+    return;
+  }
+  if (!time || !address) {
+    alert('Please fill in all required fields.');
+    return;
+  }
+
+  document.getElementById('toastMsg').textContent =
+    `${selectedService} booked for ${date} at ${time}.`;
+  document.getElementById('toast').style.display = 'flex';
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+</script>
+{% endblock %}

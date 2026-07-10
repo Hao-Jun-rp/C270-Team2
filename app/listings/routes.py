@@ -1,84 +1,25 @@
+"""
+LISTINGS (Hazirah) — the Services page.
+
+CHANGED: this page now reads services from the DATABASE (the Service table)
+instead of a hardcoded Python list. Run  python seed.py  once to fill the
+table. The template did not need to change — the field names are the same.
+"""
 from flask import render_template
 from . import listings_bp
+from ..models import Service
 
 
 @listings_bp.route("/listings")
 def index():
+    # Only show services that are switched on (is_active = True).
+    services = Service.query.filter_by(is_active=True).order_by(Service.id).all()
 
-    services = [
-        {
-            "id": 1,
-            "name": "Home Cleaning",
-            "image": "home cleaning.jpg",
-            "category": "Home",
-            "price": 45,
-            "rating": 4.8,
-            "duration": "2 - 3 Hours",
-            "description": "Perfect for apartments, HDBs and regular weekly cleaning."
-        },
-        {
-            "id": 2,
-            "name": "Deep Cleaning",
-            "image": "deep cleaning.jpg",
-            "category": "Deep Clean",
-            "price": 90,
-            "rating": 5.0,
-            "duration": "4 - 5 Hours",
-            "description": "A complete top-to-bottom cleaning for every room."
-        },
-        {
-            "id": 3,
-            "name": "Office Cleaning",
-            "image": "office cleaning.jpg",
-            "category": "Office",
-            "price": 75,
-            "rating": 4.7,
-            "duration": "3 Hours",
-            "description": "Keep your office fresh, tidy and productive."
-        },
-        {
-            "id": 4,
-            "name": "Move-Out Cleaning",
-            "image": "moveout cleaning.jpg",
-            "category": "Move Out",
-            "price": 120,
-            "rating": 4.9,
-            "duration": "5 Hours",
-            "description": "Leave your old home sparkling before handing over the keys."
-        },
-        {
-            "id": 5,
-            "name": "Eco Cleaning",
-            "image": "eco cleaning.jpg",
-            "category": "Eco",
-            "price": 60,
-            "rating": 4.8,
-            "duration": "2 Hours",
-            "description": "Environmentally friendly cleaning using eco-safe products."
-        },
-        {
-            "id": 6,
-            "name": "Kitchen & Bathroom",
-            "image": "kitchen cleaning.jpg",
-            "category": "Special",
-            "price": 55,
-            "rating": 4.9,
-            "duration": "2 Hours",
-            "description": "Extra attention to kitchens, toilets and bathrooms."
-        }
-    ]
-
-    categories = [
-        "All",
-        "Home",
-        "Office",
-        "Deep Clean",
-        "Move Out",
-        "Eco"
-    ]
+    # Build the category filter buttons from whatever services exist.
+    categories = ["All"] + sorted({s.category for s in services})
 
     return render_template(
         "listings/index.html",
         services=services,
-        categories=categories
+        categories=categories,
     )

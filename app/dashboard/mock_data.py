@@ -69,13 +69,23 @@ def _humanise(dt):
 
 
 def _activity_title(message):
-    """Derive a short heading from a notification's message text."""
+    """Derive a short heading from a notification's message text.
+
+    Order matters: a *pending* message says "received and pending
+    confirmation", which contains the word "confirmation" — so we must
+    check the pending wording BEFORE the confirmed wording, and match on
+    specific phrases rather than the bare substring "confirm".
+    """
     text = (message or "").lower()
-    if "confirm" in text:
+    if "pending confirmation" in text or "received" in text:
+        return "Booking Received"
+    if "is confirmed" in text or "booking is confirmed" in text:
         return "Booking Confirmed"
     if "complete" in text:
         return "Booking Completed"
-    if "review" in text:
+    if "awaiting approval" in text:
+        return "Review Submitted"
+    if "review" in text or "feedback" in text:
         return "Review Update"
     if "booking" in text:
         return "Booking Update"

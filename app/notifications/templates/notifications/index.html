@@ -14,7 +14,14 @@
                 <span class="pill" style="padding:3px 10px;font-size:.75rem">New</span>
               {% endif %}
             </div>
-            <div style="font-size:var(--text-small)">{{ n.message }}</div>
+            {% if n.link %}
+              <a href="{{ n.link }}" onclick="markReadThenGo(event, {{ n.id }}, '{{ n.link }}')"
+                 style="font-size:var(--text-small);color:inherit;text-decoration:none;cursor:pointer">
+                {{ n.message }} <span style="color:var(--color-primary);font-weight:600">→</span>
+              </a>
+            {% else %}
+              <div style="font-size:var(--text-small)">{{ n.message }}</div>
+            {% endif %}
             <div class="text-muted" style="font-size:var(--text-caption);margin-top:4px">
               {{ n.created_at.strftime('%d %b %Y, %I:%M %p') }}
             </div>
@@ -50,10 +57,13 @@
     function dismiss(id) {
       fetch(`/notifications/api/${id}/delete`, { method: "POST" })
         .then(r => r.json())
-        .then(() => {
-          const el = document.getElementById(`notif-${id}`);
-          if (el) el.remove();
-        });
+        .then(() => { const el = document.getElementById(`notif-${id}`); if (el) el.remove(); });
+    }
+    // Mark the notification read, then follow its link.
+    function markReadThenGo(e, id, link) {
+      e.preventDefault();
+      fetch(`/notifications/api/${id}/read`, { method: "POST" })
+        .finally(() => { window.location = link; });
     }
   </script>
 {% endblock %}

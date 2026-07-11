@@ -5,7 +5,7 @@ Notifications are created by other features when something actually happens
 (e.g. booking.routes calls create_notification after a booking is made).
 The bell in base.html polls /api/unread; this page lists them all.
 """
-from flask import Blueprint, render_template, jsonify
+from flask import Blueprint, render_template, jsonify, url_for
 from flask_login import login_required, current_user
 from ..extensions import db
 from ..models import Notification
@@ -33,7 +33,8 @@ def api_unread():
     return jsonify({
         "count": len(items),
         "items": [
-            {"id": n.id, "message": n.message, "created_at": n.created_at.isoformat() + "Z"}
+            {"id": n.id, "message": n.message, "link": n.link,
+             "created_at": n.created_at.isoformat() + "Z"}
             for n in items
         ],
     })
@@ -65,9 +66,10 @@ def delete(notif_id):
 # Helpers other features import to SEND a notification when a real event happens.
 #   from ..notifications.routes import create_notification
 # ---------------------------------------------------------------------------
-def create_notification(user_id, message):
-    """Create + save one notification immediately."""
-    n = Notification(user_id=user_id, message=message, is_read=False)
+def create_notification(user_id, message, link=None):
+    """Create + save one notification immediately.
+    `link` (optional) is where clicking the notification takes the user."""
+    n = Notification(user_id=user_id, message=message, is_read=False, link=link)
     db.session.add(n)
     db.session.commit()
     return n
@@ -80,4 +82,5 @@ def notify_booking_confirmed(booking):
         booking.user_id,
         f"Your booking for {booking.service.name} on {booking.date} "
         f"at {booking.time} has been confirmed.",
+        link="/booking",
     )

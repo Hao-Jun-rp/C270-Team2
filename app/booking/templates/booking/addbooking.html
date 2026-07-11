@@ -20,7 +20,7 @@
     <div style="display:flex;gap:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:180px">
         <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Date</label>
-        <input class="input" type="date" name="date" value="{{ form.date if form else '' }}" required style="width:100%">
+        <input class="input" type="date" name="date" value="{{ form.date if form else '' }}" min="{{ today }}" required style="width:100%">
       </div>
       <div style="flex:1;min-width:180px">
         <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Time slot</label>

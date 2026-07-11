@@ -16,30 +16,44 @@ reviews_bp = Blueprint("reviews", __name__, url_prefix="/reviews", template_fold
 
 def stars(n):
     n = int(n or 0)
-    return "\u2605" * n + "\u2606" * (5 - n)
+    return "★" * n + "☆" * (5 - n)
 
 
 @reviews_bp.route("/")
 def index():
     query = Review.query.filter_by(status="Approved")
 
-    # Optional filter: /reviews?service=Home Cleaning
+    # Optional filter: /reviews?service_id=1  (preferred) or ?service=Home Cleaning
     heading_service = None
+    service_id = request.args.get("service_id", type=int)
     service_name = request.args.get("service")
-    if service_name:
-        svc = Service.query.filter_by(name=service_name).first()
-        if svc:
-            heading_service = svc
-            query = query.filter_by(service_id=svc.id)
+    if service_id:
+        heading_service = Service.query.get(service_id)
+    elif service_name:
+        heading_service = Service.query.filter_by(name=service_name).first()
+    if heading_service:
+        query = query.filter_by(service_id=heading_service.id)
 
     reviews = query.order_by(Review.created_at.desc()).all()
     avg = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else 0.0
     services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
 
+    # The logged-in user's OWN reviews that aren't Approved yet (Pending/Hidden).
+    # These are deliberately excluded from the public `reviews` list above, so
+    # without this a customer who just submitted a review sees nothing and
+    # can't tell whether it actually saved. Show it to them, clearly labeled.
+    my_pending = []
+    if current_user.is_authenticated:
+        mine = (Review.query.filter_by(user_id=current_user.id)
+                .filter(Review.status != "Approved"))
+        if heading_service:
+            mine = mine.filter_by(service_id=heading_service.id)
+        my_pending = mine.order_by(Review.created_at.desc()).all()
+
     return render_template("reviews/index.html",
                            reviews=reviews, avg=avg, count=len(reviews),
                            services=services, heading_service=heading_service,
-                           stars=stars)
+                           my_pending=my_pending, stars=stars)
 
 
 @reviews_bp.route("/submit", methods=["POST"])
@@ -54,10 +68,24 @@ def submit():
         flash("Please choose a service, a star rating, and write a short review.", "error")
         return redirect(url_for("reviews.index"))
 
+    already = Review.query.filter_by(user_id=current_user.id, service_id=service.id).first()
+    if already:
+        flash(f"You've already reviewed {service.name}.", "error")
+        return redirect(url_for("reviews.index", service=service.name))
+
     db.session.add(Review(
         user_id=current_user.id, service_id=service.id,
         rating=rating, review_description=text, status="Pending",
     ))
     db.session.commit()
+
+    # Let the customer know it's in, with a link back to that service's reviews.
+    from ..notifications.routes import create_notification
+    create_notification(
+        current_user.id,
+        f"Thanks! Your review for {service.name} is awaiting approval.",
+        link=url_for("reviews.index", service=service.name),
+    )
+
     flash("Thanks for your review! It will appear once it's approved.", "success")
     return redirect(url_for("reviews.index", service=service.name))

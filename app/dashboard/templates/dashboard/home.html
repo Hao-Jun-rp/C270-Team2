@@ -5,7 +5,9 @@
 <h1>My dashboard</h1>
 <p class="text-muted">Welcome back. Here's an overview of your bookings.</p>
 
-<br>
+{% block title %}
+Dashboard · Sparkle
+{% endblock %}
 
 <div class="card card-raised">
   <h3>Booking summary</h3>
@@ -14,7 +16,6 @@
   <p>Completed: {{ summary.Completed }}</p>
 </div>
 
-<br>
 
 <h2>Recent bookings</h2>
 

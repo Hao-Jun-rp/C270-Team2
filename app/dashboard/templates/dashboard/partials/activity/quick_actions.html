@@ -1,0 +1,188 @@
+<!-- ===================================================== -->
+<!-- Quick Actions -->
+<!--
+TODO (Future Integration)
+
+These are shortcuts to existing modules.
+
+Book Cleaning  -> Listings module
+My Bookings    -> Booking module
+Notifications  -> Notification module
+Reviews        -> Review module
+
+No backend changes should be required unless
+the routes are renamed.
+
+===================================================== -->
+
+<section style="margin-top:40px;margin-bottom:50px;">
+
+    <h2>
+
+        Quick Actions
+
+    </h2>
+
+    <div
+    style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+        gap:20px;
+        margin-top:20px;
+    ">
+
+        <!-- Book Cleaning -->
+
+        <a
+        href="{{ url_for('listings.index') }}"
+        style="text-decoration:none;color:inherit;">
+
+            <div
+            class="card"
+            style="
+                text-align:center;
+                padding:28px;
+                cursor:pointer;
+                transition:.2s;
+            ">
+
+                <div style="font-size:2rem;margin-bottom:10px;">
+
+                    🧹
+
+                </div>
+
+                <h3>
+
+                    Book Cleaning
+
+                </h3>
+
+                <p class="text-muted">
+
+                    Browse cleaning services
+                    and make a new booking.
+
+                </p>
+
+            </div>
+
+        </a>
+
+        <!-- My Bookings -->
+
+        <a
+        href="{{ url_for('booking.index') }}"
+        style="text-decoration:none;color:inherit;">
+
+            <div
+            class="card"
+            style="
+                text-align:center;
+                padding:28px;
+                cursor:pointer;
+                transition:.2s;
+            ">
+
+                <div style="font-size:2rem;margin-bottom:10px;">
+
+                    📅
+
+                </div>
+
+                <h3>
+
+                    My Bookings
+
+                </h3>
+
+                <p class="text-muted">
+
+                    View every booking
+                    you've made.
+
+                </p>
+
+            </div>
+
+        </a>
+
+        <!-- Notifications -->
+
+        <a
+        href="{{ url_for('notifications.index') }}"
+        style="text-decoration:none;color:inherit;">
+
+            <div
+            class="card"
+            style="
+                text-align:center;
+                padding:28px;
+                cursor:pointer;
+                transition:.2s;
+            ">
+
+                <div style="font-size:2rem;margin-bottom:10px;">
+
+                    🔔
+
+                </div>
+
+                <h3>
+
+                    Notifications
+
+                </h3>
+
+                <p class="text-muted">
+
+                    Stay updated with your
+                    latest booking activity.
+
+                </p>
+
+            </div>
+
+        </a>
+
+        <!-- Reviews -->
+
+        <a
+        href="{{ url_for('reviews.index') }}"
+        style="text-decoration:none;color:inherit;">
+
+            <div
+            class="card"
+            style="
+                text-align:center;
+                padding:28px;
+                cursor:pointer;
+                transition:.2s;
+            ">
+
+                <div style="font-size:2rem;margin-bottom:10px;">
+
+                    ⭐
+
+                </div>
+
+                <h3>
+
+                    Reviews
+
+                </h3>
+
+                <p class="text-muted">
+
+                    View or leave feedback
+                    for completed bookings.
+
+                </p>
+
+            </div>
+
+        </a>
+
+    </div>
+
+</section>

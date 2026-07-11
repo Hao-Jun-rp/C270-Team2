@@ -1,4 +1,28 @@
 """
+Dashboard Routes
+
+Dashboard Feature (Tristan)
+
+Routes should remain lightweight.
+
+Business logic belongs inside services.py.
+
+Mock data belongs inside mock_data.py.
+
+"""
+
+from flask import Blueprint, render_template, request
+
+from .services import get_dashboard_data
+
+dashboard_bp = Blueprint(
+    "dashboard",
+    __name__,
+    template_folder="templates",
+    static_folder="static",
+    static_url_path="/dashboard/static"
+)
+
 DASHBOARD feature (Tristan) — now reads the user's real bookings.
 """
 from flask import Blueprint, render_template
@@ -7,6 +31,9 @@ from ..models import Booking
 
 dashboard_bp = Blueprint("dashboard", __name__, template_folder="templates")
 
+# =========================================================
+# Dashboard Home
+# =========================================================
 
 @dashboard_bp.route("/")
 @dashboard_bp.route("/dashboard")

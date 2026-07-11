@@ -1,6 +1,6 @@
 """
 seed_demo.py — fills the database with a full set of demo data:
-5 users, 6 services, 12 bookings, 8 reviews, 9 notifications.
+5 users, 6 services, 14 bookings, 7 reviews, 11 notifications.
 Service ratings are CALCULATED from the approved reviews.
 
 Run once, from the cleaning-app folder, with your venv active:
@@ -40,24 +40,34 @@ SERVICES = [
     ("Kitchen & Bathroom", "Special", "Extra attention to kitchens, toilets and bathrooms.", 55, "2 Hours", "kitchen cleaning.jpg"),
 ]
 
-# (user_idx, service_idx, date, time, address, notes, status)
+# (user_idx, service_idx, date, time, address, notes, status, pay_method, pay_status)
+# Time slots now FIT each service's duration (Home 3h, Deep 5h, Office 3h,
+# Move-Out 5h, Eco 2h, Kitchen 2h) — matching the booking form's new rules.
 BOOKINGS = [
-    (1, 0, "2026-06-15", "10:00–11:00", "12 Bishan St 22, #08-114, Singapore", "Focus on the kitchen please.", "Completed"),
-    (1, 1, "2026-06-28", "14:00–15:00", "12 Bishan St 22, #08-114, Singapore", "", "Completed"),
-    (4, 0, "2026-06-20", "09:00–10:00", "45 Tampines Ave 4, #12-330, Singapore", "Please bring eco-friendly products.", "Completed"),
-    (4, 2, "2026-07-02", "13:00–14:00", "One Raffles Place, #22-01, Singapore", "After office hours only.", "Completed"),
-    (3, 5, "2026-06-30", "11:00–12:00", "88 Tanjong Pagar Rd, #05-12, Singapore", "", "Completed"),
-    (3, 3, "2026-07-25", "08:00–09:00", "88 Tanjong Pagar Rd, #05-12, Singapore", "Moving out, whole unit.", "Pending"),
-    (2, 4, "2026-07-20", "15:00–16:00", "30 Clementi Ave 3, #10-45, Singapore", "", "Confirmed"),
-    (1, 0, "2026-07-18", "10:00–11:00", "12 Bishan St 22, #08-114, Singapore", "Same as last time.", "Confirmed"),
-    (4, 1, "2026-07-22", "14:00–15:00", "45 Tampines Ave 4, #12-330, Singapore", "", "Pending"),
-    (2, 2, "2026-06-25", "09:00–10:00", "30 Clementi Ave 3, #10-45, Singapore", "", "Completed"),
-    (3, 4, "2026-06-18", "16:00–17:00", "88 Tanjong Pagar Rd, #05-12, Singapore", "Pet-safe products please.", "Completed"),
-    (0, 5, "2026-07-01", "11:00–12:00", "5 Woodlands Dr 14, #03-22, Singapore", "", "Completed"),
+    (1, 0, "2026-06-15", "10:00–13:00", "12 Bishan St 22, #08-114, Singapore", "Focus on the kitchen please.", "Completed", "Card", "Paid (demo)"),
+    (1, 1, "2026-06-28", "13:00–18:00", "12 Bishan St 22, #08-114, Singapore", "", "Completed", "PayNow", "Paid (demo)"),
+    (4, 0, "2026-06-20", "09:00–12:00", "45 Tampines Ave 4, #12-330, Singapore", "Please bring eco-friendly products.", "Completed", "PayNow", "Paid (demo)"),
+    (4, 2, "2026-07-02", "13:00–16:00", "One Raffles Place, #22-01, Singapore", "After office hours only.", "Completed", "Card", "Paid (demo)"),
+    (3, 5, "2026-06-30", "11:00–13:00", "88 Tanjong Pagar Rd, #05-12, Singapore", "", "Completed", "Cash", "Unpaid"),
+    (3, 3, "2026-07-25", "09:00–14:00", "88 Tanjong Pagar Rd, #05-12, Singapore", "Moving out, whole unit.", "Pending", "Cash", "Unpaid"),
+    (2, 4, "2026-07-20", "15:00–17:00", "30 Clementi Ave 3, #10-45, Singapore", "", "Confirmed", "PayNow", "Paid (demo)"),
+    (1, 0, "2026-07-18", "10:00–13:00", "12 Bishan St 22, #08-114, Singapore", "Same as last time.", "Confirmed", "Card", "Paid (demo)"),
+    (4, 1, "2026-07-22", "13:00–18:00", "45 Tampines Ave 4, #12-330, Singapore", "", "Pending", "Cash", "Unpaid"),
+    (2, 2, "2026-06-25", "09:00–12:00", "30 Clementi Ave 3, #10-45, Singapore", "", "Completed", "PayNow", "Paid (demo)"),
+    (3, 4, "2026-06-18", "16:00–18:00", "88 Tanjong Pagar Rd, #05-12, Singapore", "Pet-safe products please.", "Completed", "Card", "Paid (demo)"),
+    (0, 5, "2026-07-01", "11:00–13:00", "5 Woodlands Dr 14, #03-22, Singapore", "", "Completed", "PayNow", "Paid (demo)"),
+    # Aisha extras: a CONFIRMED future booking (shows in Upcoming Bookings +
+    # a blue calendar event) and a second unreviewed COMPLETED booking
+    # (a second "write a review" demo besides Home Cleaning).
+    (4, 4, "2026-07-16", "10:00–12:00", "45 Tampines Ave 4, #12-330, Singapore", "Eco products only please.", "Confirmed", "PayNow", "Paid (demo)"),
+    (4, 5, "2026-06-10", "13:00–15:00", "45 Tampines Ave 4, #12-330, Singapore", "", "Completed", "Cash", "Unpaid"),
 ]
 
 # (user_idx, service_idx, rating, title, description, staff_reply, status)
-# NOTE: Aisha (user 4) deliberately has NO review for Home Cleaning (service 0),
+# NOTE: Aisha (user 4) deliberately has NO review for Home Cleaning (service 0)
+# NOR for Kitchen & Bathroom (service 5) despite Completed bookings of both -
+# they are the two "write a review" demo targets.
+# Original note:
 # even though her booking of it is Completed (see BOOKINGS below) - this is what
 # lets the "Write a review" button and the "leave a review" notification below
 # actually have something to demo. Every OTHER completed booking already has a
@@ -90,6 +100,8 @@ NOTIFICATIONS = [
     (2, "Your Eco Cleaning on 20 Jul is confirmed.", False, _BOOK),
     (0, "Your review for Kitchen & Bathroom is awaiting approval.", False, _rev("Kitchen & Bathroom")),
     (4, "Your Home Cleaning is complete - leave a review to help others!", False, _rev("Home Cleaning", form=True)),
+    (4, "Your Eco Cleaning on 16 Jul is confirmed. See you then!", False, _BOOK),
+    (4, "Your Kitchen & Bathroom clean is complete - leave a review!", True, _rev("Kitchen & Bathroom", form=True)),
 ]
 
 
@@ -117,10 +129,11 @@ def run():
         services = Service.query.order_by(Service.id).all()
 
         if Booking.query.count() == 0:
-            for ui, si, date, time, addr, notes, status in BOOKINGS:
+            for ui, si, date, time, addr, notes, status, pmethod, pstatus in BOOKINGS:
                 db.session.add(Booking(user_id=users[ui].id, service_id=services[si].id,
                                        date=date, time=time, address=addr,
-                                       notes=notes, status=status))
+                                       notes=notes, status=status,
+                                       payment_method=pmethod, payment_status=pstatus))
             db.session.commit()
 
         if Review.query.count() == 0:

@@ -158,11 +158,6 @@ document.addEventListener("DOMContentLoaded", function () {
     </p>
 
     <p>
-    <strong>Cleaner:</strong>
-    ${p.cleaner}
-    </p>
-
-    <p>
     <strong>Duration:</strong>
     ${p.duration}
     </p>

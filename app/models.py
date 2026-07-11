@@ -96,6 +96,13 @@ class Booking(db.Model):
     notes = db.Column(db.String(500), nullable=True)
     status = db.Column(db.String(20), nullable=False, default="Pending")
     # Agreed status words: Pending / Confirmed / Completed / Cancelled
+
+    # --- Payment (demo only — we never store card numbers/CVV) ---
+    # payment_method: PayNow / Card / Cash  (Cash = pay after the clean)
+    # payment_status: "Paid (demo)" or "Unpaid"
+    payment_method = db.Column(db.String(20), nullable=True)
+    payment_status = db.Column(db.String(20), nullable=False, default="Unpaid")
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # These let templates do  booking.service.name  and  booking.user.name

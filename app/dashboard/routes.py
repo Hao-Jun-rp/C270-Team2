@@ -1,76 +1,74 @@
 """
-DASHBOARD feature (Tristan)
+=========================================================
+Dashboard Routes
+
+Dashboard Feature (Tristan)
+
+Routes should remain lightweight.
+
+Business logic belongs inside services.py.
+
+Mock data belongs inside mock_data.py.
+
+=========================================================
 """
 
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
+
+from .services import get_dashboard_data
 
 dashboard_bp = Blueprint(
     "dashboard",
     __name__,
-    template_folder="templates"
+    template_folder="templates",
+    static_folder="static",
+    static_url_path="/dashboard/static"
 )
 
 
-# --------------------------------------------------
-# TEMPORARY MOCK DATA
-# TODO:
-# Replace with booking module integration later
-# Pull booking data dynamically from booking module
-# --------------------------------------------------
-
-def get_bookings():
-
-    return [
-
-        {
-            "id": 1,
-            "service": "Deep Clean",
-            "date": "15 Jan 2027",
-            "status": "Confirmed"
-        },
-
-        {
-            "id": 2,
-            "service": "Standard Clean",
-            "date": "22 Jan 2027",
-            "status": "Pending"
-        },
-
-        {
-            "id": 3,
-            "service": "Eco Clean",
-            "date": "28 Jan 2027",
-            "status": "Confirmed"
-        }
-
-    ]
-
+# =========================================================
+# Dashboard Home
+# =========================================================
 
 @dashboard_bp.route("/")
 @dashboard_bp.route("/dashboard")
 def home():
 
-    bookings = get_bookings()
+    # -----------------------------------------------------
+    # Cleaning Tip Navigation
+    #
+    # Current implementation uses a query parameter:
+    #   /dashboard?tip=0
+    #   /dashboard?tip=1
+    #
+    # Future:
+    # Replace with JavaScript carousel if desired.
+    # -----------------------------------------------------
 
-    return render_template(
-        "dashboard/home.html",
-        bookings=bookings
+    current_tip = request.args.get(
+        "tip",
+        default=0,
+        type=int
     )
 
+    # -----------------------------------------------------
+    # Get ALL dashboard data from the service layer.
+    #
+    # IMPORTANT:
+    # Routes should NOT contain business logic.
+    # Future developers should update services.py instead.
+    # -----------------------------------------------------
 
-# --------------------------------------------------
-# FUTURE INTEGRATION
-# Replace get_bookings() with Ashish booking module
-# once booking data becomes database-driven
-# --------------------------------------------------
+    dashboard_data = get_dashboard_data(current_tip)
 
-"""
-Future integration example:
+    # -----------------------------------------------------
+    # Render Dashboard
+    # -----------------------------------------------------
 
-def get_bookings():
+    return render_template(
 
-    return Booking.query.filter_by(
-        user_id=current_user.id
-    ).limit(3).all()
+        "dashboard/home.html",
 
-"""
+        **dashboard_data
+
+    )

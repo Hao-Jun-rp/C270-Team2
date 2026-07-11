@@ -1,0 +1,141 @@
+<!-- ========================================================= -->
+<!-- Booking Summary Component -->
+<!-- Owner: Tristan -->
+<!--
+TODO (Booking Integration)
+
+Replace summary values with booking statistics.
+
+Current variables:
+
+summary.upcoming
+summary.pending
+summary.completed
+
+Optional future additions:
+
+summary.total
+summary.this_month
+summary.completion_rate
+
+========================================================= -->
+<br>
+<h2>Booking Summary</h2>
+
+<div
+style="
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:20px;
+margin-top:20px;
+margin-bottom:40px;
+">
+
+    <!-- Upcoming -->
+
+    <div class="card">
+
+        <div style="font-size:2rem;">📅</div>
+
+        <h3>
+
+            Upcoming
+
+        </h3>
+
+        <h1>
+
+            {{ summary.upcoming }}
+
+        </h1>
+
+        <p class="text-muted">
+
+            Confirmed booking(s)
+
+        </p>
+
+    </div>
+
+
+    <!-- Pending -->
+
+    <div class="card">
+
+        <div style="font-size:2rem;">⏳</div>
+
+        <h3>
+
+            Pending
+
+        </h3>
+
+        <h1>
+
+            {{ summary.pending }}
+
+        </h1>
+
+        <p class="text-muted">
+
+            Awaiting confirmation
+
+        </p>
+
+    </div>
+
+
+    <!-- Completed -->
+
+    <div class="card">
+
+        <div style="font-size:2rem;">✅</div>
+
+        <h3>
+
+            Completed
+
+        </h3>
+
+        <h1>
+
+            {{ summary.completed }}
+
+        </h1>
+
+        <p class="text-muted">
+
+            Successfully finished
+
+        </p>
+
+    </div>
+
+
+    <!-- Total -->
+
+    <div class="card">
+
+        <div style="font-size:2rem;">🧹</div>
+
+        <h3>
+
+            Total
+
+        </h3>
+
+        <h1>
+
+            {{ summary.upcoming + summary.pending + summary.completed }}
+
+        </h1>
+
+        <p class="text-muted">
+
+            Total booking(s)
+
+        </p>
+
+    </div>
+
+</div>

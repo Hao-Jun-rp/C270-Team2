@@ -1,17 +1,15 @@
 """
-Dashboard Routes
+=========================================================
+Dashboard Routes  (Tristan)
 
-Dashboard Feature (Tristan)
-
-Routes should remain lightweight.
-
-Business logic belongs inside services.py.
-
-Mock data belongs inside mock_data.py.
-
+Routes stay lightweight: they pull everything from the service layer
+and render. Business logic lives in services.py; the data now comes
+from the real database via mock_data.py (renamed in spirit to the
+"data layer" — see that file's header).
+=========================================================
 """
-
 from flask import Blueprint, render_template, request
+from flask_login import login_required
 
 from .services import get_dashboard_data
 
@@ -20,37 +18,22 @@ dashboard_bp = Blueprint(
     __name__,
     template_folder="templates",
     static_folder="static",
-    static_url_path="/dashboard/static"
+    static_url_path="/dashboard/static",
 )
 
-DASHBOARD feature (Tristan) — now reads the user's real bookings.
-"""
-from flask import Blueprint, render_template
-from flask_login import login_required, current_user
-from ..models import Booking
-
-dashboard_bp = Blueprint("dashboard", __name__, template_folder="templates")
 
 # =========================================================
 # Dashboard Home
 # =========================================================
-
 @dashboard_bp.route("/")
 @dashboard_bp.route("/dashboard")
 @login_required
 def home():
-    bookings = (Booking.query
-                .filter_by(user_id=current_user.id)
-                .order_by(Booking.date.desc())
-                .all())
+    # Which cleaning tip to show first (?tip=0, ?tip=1, ...).
+    current_tip = request.args.get("tip", default=0, type=int)
 
-    # Real summary counts for this user.
-    summary = {
-        "Pending": sum(1 for b in bookings if b.status == "Pending"),
-        "Confirmed": sum(1 for b in bookings if b.status == "Confirmed"),
-        "Completed": sum(1 for b in bookings if b.status == "Completed"),
-    }
+    # All dashboard data (bookings, summary, calendar, tips, ...) comes
+    # from the service layer, scoped to the logged-in user.
+    dashboard_data = get_dashboard_data(current_tip)
 
-    # Show the 5 most recent on the dashboard; full list lives on /booking.
-    return render_template("dashboard/home.html",
-                           bookings=bookings[:5], summary=summary)
+    return render_template("dashboard/home.html", **dashboard_data)

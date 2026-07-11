@@ -33,7 +33,7 @@
       {% for b in bookings %}
       <div class="card booking-card"
         data-status="{{ b.status }}"
-        onclick="openDetail('{{ b.id }}','{{ b.service.name }}','{{ b.date }}','{{ b.time }}','{{ b.address }}','{{ b.notes or '' }}','{{ b.status }}',{{ 'true' if b.service_id in reviewed_service_ids else 'false' }})"
+        onclick="openDetail('{{ b.id }}','{{ b.service.name }}','{{ b.date }}','{{ b.time }}','{{ b.address }}','{{ b.notes or '' }}','{{ b.status }}',{{ 'true' if b.service_id in reviewed_service_ids else 'false' }},'{{ b.payment_status or 'Unpaid' }}{% if b.payment_method %} · {{ b.payment_method }}{% endif %}')"
         style="padding:20px;margin-bottom:12px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:.15s ease">
         <div style="background:var(--color-foam);border-radius:8px;padding:10px 14px;text-align:center;min-width:52px;flex:0 0 auto">
           <div style="font-family:var(--font-head);font-weight:700;font-size:1.125rem;color:var(--color-primary);line-height:1">{{ b.date.split('-')[2] }}</div>
@@ -98,6 +98,10 @@
         <span style="color:var(--color-slate)">Notes</span>
         <span id="dNotes" style="font-weight:600;text-align:right;max-width:60%"></span>
       </div>
+      <div style="display:flex;justify-content:space-between;font-size:.875rem;border-bottom:1px solid var(--color-mist);padding-bottom:14px">
+        <span style="color:var(--color-slate)">Payment</span>
+        <span id="dPayment" style="font-weight:600"></span>
+      </div>
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:.875rem">
         <span style="color:var(--color-slate)">Status</span>
         <span id="dStatus" style="font-weight:700;font-size:.6875rem;text-transform:uppercase;padding:5px 10px;border-radius:999px"></span>
@@ -123,8 +127,9 @@ function filterBookings() {
   document.getElementById('countLabel').textContent = visible + ' booking' + (visible !== 1 ? 's' : '');
 }
 
-function openDetail(id, service, date, time, address, notes, status, alreadyReviewed) {
+function openDetail(id, service, date, time, address, notes, status, alreadyReviewed, payment) {
   document.getElementById('dService').textContent = service;
+  document.getElementById('dPayment').textContent = payment || 'Unpaid';
   document.getElementById('dDate').textContent = date;
   document.getElementById('dTime').textContent = time;
   document.getElementById('dAddress').textContent = address;

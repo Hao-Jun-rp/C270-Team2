@@ -96,15 +96,33 @@ def get_next_booking(bookings):
 
 def get_upcoming_bookings(bookings):
 
-    return [
+    """First 3 FUTURE bookings that are Pending or Confirmed,
+    nearest date first. (Fixed by Marcus: previously this only
+    showed Confirmed bookings, so users whose bookings are all
+    Pending saw an empty state.) Dates arrive as '13 Jul 2026'."""
 
-        booking
+    today = datetime.now().date()
 
-        for booking in bookings
+    upcoming = []
 
-        if booking["status"] == "Confirmed"
+    for booking in bookings:
 
-    ][:3]
+        if booking["status"] not in ("Pending", "Confirmed"):
+            continue
+
+        try:
+            booking_date = datetime.strptime(
+                booking["date"], "%d %b %Y"
+            ).date()
+        except (ValueError, TypeError):
+            continue
+
+        if booking_date >= today:
+            upcoming.append((booking_date, booking))
+
+    upcoming.sort(key=lambda pair: pair[0])
+
+    return [booking for _, booking in upcoming[:3]]
 
 
 # =========================================================

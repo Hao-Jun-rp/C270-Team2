@@ -1,5 +1,4 @@
 """
-=========================================================
 Dashboard Routes
 
 Dashboard Feature (Tristan)
@@ -10,7 +9,6 @@ Business logic belongs inside services.py.
 
 Mock data belongs inside mock_data.py.
 
-=========================================================
 """
 
 from flask import Blueprint, render_template, request
@@ -25,6 +23,13 @@ dashboard_bp = Blueprint(
     static_url_path="/dashboard/static"
 )
 
+DASHBOARD feature (Tristan) — now reads the user's real bookings.
+"""
+from flask import Blueprint, render_template
+from flask_login import login_required, current_user
+from ..models import Booking
+
+dashboard_bp = Blueprint("dashboard", __name__, template_folder="templates")
 
 # =========================================================
 # Dashboard Home
@@ -32,43 +37,20 @@ dashboard_bp = Blueprint(
 
 @dashboard_bp.route("/")
 @dashboard_bp.route("/dashboard")
+@login_required
 def home():
+    bookings = (Booking.query
+                .filter_by(user_id=current_user.id)
+                .order_by(Booking.date.desc())
+                .all())
 
-    # -----------------------------------------------------
-    # Cleaning Tip Navigation
-    #
-    # Current implementation uses a query parameter:
-    #   /dashboard?tip=0
-    #   /dashboard?tip=1
-    #
-    # Future:
-    # Replace with JavaScript carousel if desired.
-    # -----------------------------------------------------
+    # Real summary counts for this user.
+    summary = {
+        "Pending": sum(1 for b in bookings if b.status == "Pending"),
+        "Confirmed": sum(1 for b in bookings if b.status == "Confirmed"),
+        "Completed": sum(1 for b in bookings if b.status == "Completed"),
+    }
 
-    current_tip = request.args.get(
-        "tip",
-        default=0,
-        type=int
-    )
-
-    # -----------------------------------------------------
-    # Get ALL dashboard data from the service layer.
-    #
-    # IMPORTANT:
-    # Routes should NOT contain business logic.
-    # Future developers should update services.py instead.
-    # -----------------------------------------------------
-
-    dashboard_data = get_dashboard_data(current_tip)
-
-    # -----------------------------------------------------
-    # Render Dashboard
-    # -----------------------------------------------------
-
-    return render_template(
-
-        "dashboard/home.html",
-
-        **dashboard_data
-
-    )
+    # Show the 5 most recent on the dashboard; full list lives on /booking.
+    return render_template("dashboard/home.html",
+                           bookings=bookings[:5], summary=summary)

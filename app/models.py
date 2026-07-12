@@ -32,6 +32,11 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    # role decides what a user can do:
+    #   "customer" -> normal user (book, review, etc.)  [default]
+    #   "admin"    -> can reach /admin: confirm bookings, approve reviews,
+    #                 manage services. Set on the seeded admin account.
+    role = db.Column(db.String(20), nullable=False, default="customer")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # We never store the raw password - only a scrambled "hash".
@@ -55,6 +60,12 @@ class User(UserMixin, db.Model):
     def display_id(self):
         """Readable label for the UI, e.g. U001. The real id stays an integer."""
         return f"U{self.id:03d}"
+
+    @property
+    def is_admin(self):
+        """True for admin accounts. Used by @admin_required and the navbar
+        (the 'Admin' link only shows when this is True)."""
+        return self.role == "admin"
 
 
 # ============================================================

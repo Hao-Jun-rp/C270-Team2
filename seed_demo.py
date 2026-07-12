@@ -1,6 +1,6 @@
 """
 seed_demo.py — fills the database with a full set of demo data:
-5 users, 6 services, 14 bookings, 7 reviews, 11 notifications.
+5 users (marcus@sparkle.sg is ADMIN), 6 services, 14 bookings, 7 reviews, 11 notifications.
 Service ratings are CALCULATED from the approved reviews.
 
 Run once, from the cleaning-app folder, with your venv active:
@@ -23,12 +23,13 @@ def d(s):
     return datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
 
 
+# (name, email, role)  -  Marcus is the seeded ADMIN; everyone else is a customer.
 USERS = [
-    ("Marcus Tan", "marcus@sparkle.sg"),
-    ("Tristan Lee", "tristan@example.com"),
-    ("Hazirah Binte", "hazirah@example.com"),
-    ("Ashish Kumar", "ashish@example.com"),
-    ("Aisha Rahman", "aisha@example.com"),
+    ("Marcus Tan", "marcus@sparkle.sg", "admin"),
+    ("Tristan Lee", "tristan@example.com", "customer"),
+    ("Hazirah Binte", "hazirah@example.com", "customer"),
+    ("Ashish Kumar", "ashish@example.com", "customer"),
+    ("Aisha Rahman", "aisha@example.com", "customer"),
 ]
 
 SERVICES = [
@@ -112,8 +113,9 @@ def run():
 
         if User.query.count() == 0:
             users = []
-            for name, email in USERS:
-                u = User(name=name, email=email, created_at=d("2026-06-01 09:00:00"))
+            for name, email, role in USERS:
+                u = User(name=name, email=email, role=role,
+                         created_at=d("2026-06-01 09:00:00"))
                 u.set_password("password123")
                 db.session.add(u)
                 users.append(u)

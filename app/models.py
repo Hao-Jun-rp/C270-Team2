@@ -109,10 +109,11 @@ class Booking(db.Model):
     # Agreed status words: Pending / Confirmed / Completed / Cancelled
 
     # --- Payment (demo only — we never store card numbers/CVV) ---
-    # payment_method: PayNow / Card / Cash  (Cash = pay after the clean)
-    # payment_status: "Paid (demo)" or "Unpaid"
+    # payment_status: "Unpaid", "Paid (demo)", or "Paid (cash on completion)".
+    #   NOTE: must be long enough for the longest of those (25 chars) — MySQL
+    #   enforces column length (SQLite silently ignored it), so keep headroom.
     payment_method = db.Column(db.String(20), nullable=True)
-    payment_status = db.Column(db.String(20), nullable=False, default="Unpaid")
+    payment_status = db.Column(db.String(40), nullable=False, default="Unpaid")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

@@ -30,6 +30,8 @@ def register():
         # ---- Checks (stop at the first problem) ----
         if not name or not email or not password:
             flash("Please fill in every field.", "error")
+        elif len(name) > 80:
+            flash("Name is too long (max 80 characters).", "error")
         elif not EMAIL_RE.match(email):
             flash("Please enter a valid email address.", "error")
         elif len(password) < 6:

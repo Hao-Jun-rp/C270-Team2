@@ -101,7 +101,10 @@ class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey("service.id"), nullable=False)
-    date = db.Column(db.String(20), nullable=False)
+    # Real DATE type (was free text). Real date sorting/filtering + clean
+    # "is this in the past" checks. `time` stays a slot LABEL ("09:00–12:00")
+    # on purpose — it's a discrete booking slot (a range), not a timestamp.
+    date = db.Column(db.Date, nullable=False)
     time = db.Column(db.String(20), nullable=False)
     address = db.Column(db.String(200), nullable=False)
     notes = db.Column(db.String(500), nullable=True)

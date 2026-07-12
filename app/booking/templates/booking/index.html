@@ -33,11 +33,11 @@
       {% for b in bookings %}
       <div class="card booking-card"
         data-status="{{ b.status }}"
-        onclick="openDetail('{{ b.id }}','{{ b.service.name }}','{{ b.date }}','{{ b.time }}','{{ b.address }}','{{ b.notes or '' }}','{{ b.status }}',{{ 'true' if b.service_id in reviewed_service_ids else 'false' }},'{{ b.payment_status or 'Unpaid' }}{% if b.payment_method %} · {{ b.payment_method }}{% endif %}')"
+        onclick="openDetail('{{ b.id }}','{{ b.service.name }}','{{ b.date.isoformat() }}','{{ b.time }}','{{ b.address }}','{{ b.notes or '' }}','{{ b.status }}',{{ 'true' if b.service_id in reviewed_service_ids else 'false' }},'{{ b.payment_status or 'Unpaid' }}{% if b.payment_method %} · {{ b.payment_method }}{% endif %}')"
         style="padding:20px;margin-bottom:12px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:.15s ease">
         <div style="background:var(--color-foam);border-radius:8px;padding:10px 14px;text-align:center;min-width:52px;flex:0 0 auto">
-          <div style="font-family:var(--font-head);font-weight:700;font-size:1.125rem;color:var(--color-primary);line-height:1">{{ b.date.split('-')[2] }}</div>
-          <div style="font-size:.625rem;font-weight:600;text-transform:uppercase;color:var(--color-primary)">{{ b.date.split('-')[1] }}</div>
+          <div style="font-family:var(--font-head);font-weight:700;font-size:1.125rem;color:var(--color-primary);line-height:1">{{ b.date.day }}</div>
+          <div style="font-size:.625rem;font-weight:600;text-transform:uppercase;color:var(--color-primary)">{{ b.date.strftime('%b') }}</div>
         </div>
         <div style="flex:1;min-width:0">
           <div style="font-family:var(--font-head);font-weight:600">{{ b.service.name }}</div>
@@ -59,6 +59,22 @@
         </a>
         {% elif b.status == 'Completed' %}
         <span class="pill" style="padding:5px 10px;font-size:.6875rem;flex:0 0 auto;white-space:nowrap">Reviewed</span>
+        {% endif %}
+        {% if b.status in ['Pending', 'Confirmed'] %}
+        <a href="{{ url_for('booking.edit_booking', booking_id=b.id) }}"
+           onclick="event.stopPropagation()" class="btn btn-ghost"
+           style="padding:6px 12px;font-size:.75rem;flex:0 0 auto;text-decoration:none;white-space:nowrap">
+          Edit
+        </a>
+        <form method="POST" action="{{ url_for('booking.cancel_booking', booking_id=b.id) }}"
+              onclick="event.stopPropagation()"
+              onsubmit="return confirm('Cancel your {{ b.service.name }} booking?')"
+              style="flex:0 0 auto;margin:0">
+          <button type="submit" class="btn btn-ghost"
+                  style="padding:6px 12px;font-size:.75rem;color:var(--color-coral);white-space:nowrap">
+            Cancel
+          </button>
+        </form>
         {% endif %}
         <div style="color:var(--color-steam);font-size:1.1rem;flex:0 0 auto">›</div>
       </div>

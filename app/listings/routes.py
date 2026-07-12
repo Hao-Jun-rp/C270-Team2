@@ -2,7 +2,7 @@
 LISTINGS (Hazirah) — the Services page.
 
 CHANGED: this page now reads services from the DATABASE (the Service table)
-instead of a hardcoded Python list. Run  python seed.py  once to fill the
+instead of a hardcoded Python list. Run  python seed_demo.py  once to fill the
 table. The template did not need to change — the field names are the same.
 """
 from flask import render_template

@@ -16,7 +16,7 @@
       <a href="{{ url_for('listings.index') }}">Services</a>
       <a href="{{ url_for('booking.index') }}">Booking</a>
       {% if current_user.is_admin %}
-      <a href="{{ url_for('admin.dashboard') }}" style="color:var(--color-primary);font-weight:600">Admin</a>
+      <a href="{{ url_for('admin.dashboard') }}" style="color:var(--color-primary);font-weight:600;position:relative">Admin<span id="adminPending" style="display:none;margin-left:6px;background:var(--color-coral);color:#fff;font-size:.6875rem;font-weight:700;padding:1px 7px;border-radius:999px;vertical-align:middle"></span></a>
       {% endif %}
     </nav>
     {% endif %}
@@ -152,6 +152,29 @@
       pollNotifications();
       setInterval(pollNotifications, 30000);
     }
+
+    // ---- Admin: live pending badge (bookings + reviews needing attention) ----
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    (function () {
+      var badge = document.getElementById("adminPending");
+      if (!badge) return;
+      function pollAdmin() {
+        fetch("{{ url_for('admin.pending_count') }}")
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (d.pending > 0) {
+              badge.textContent = d.pending;
+              badge.style.display = "inline-block";
+            } else {
+              badge.style.display = "none";
+            }
+          })
+          .catch(function () { /* fail quietly */ });
+      }
+      pollAdmin();
+      setInterval(pollAdmin, 30000);
+    })();
+    {% endif %}
   </script>
 </body>
 </html>

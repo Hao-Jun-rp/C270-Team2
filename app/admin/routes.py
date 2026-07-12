@@ -25,7 +25,7 @@ SERVICES   (/admin/services)
 from datetime import datetime
 
 from flask import (Blueprint, render_template, request, redirect,
-                   url_for, flash, abort)
+                   url_for, flash, abort, jsonify)
 
 from ..extensions import db
 from ..models import User, Service, Booking, Review, Notification
@@ -36,6 +36,16 @@ admin_bp = Blueprint("admin", __name__, url_prefix="/admin",
                      template_folder="templates")
 
 BOOKING_STATUSES = ["Pending", "Confirmed", "Completed", "Cancelled"]
+
+# Which status changes an admin is allowed to make. Completed and Cancelled
+# are terminal (no onward moves). This is enforced server-side so a crafted
+# request can't do nonsense like Completed -> Pending.
+ALLOWED_TRANSITIONS = {
+    "Pending":   {"Confirmed", "Cancelled"},
+    "Confirmed": {"Completed", "Cancelled"},
+    "Completed": set(),
+    "Cancelled": set(),
+}
 
 
 # ---------------------------------------------------------------
@@ -70,6 +80,16 @@ def dashboard():
                            recent_bookings=recent_bookings)
 
 
+@admin_bp.route("/api/pending-count")
+@admin_required
+def pending_count():
+    """Polled by the navbar so the admin badge updates without a refresh.
+    Returns how many things currently need admin attention."""
+    pending = (Booking.query.filter_by(status="Pending").count()
+               + Review.query.filter_by(status="Pending").count())
+    return jsonify({"pending": pending})
+
+
 # ===============================================================
 # Bookings management
 # ===============================================================
@@ -96,6 +116,11 @@ def update_booking_status(booking_id):
         return redirect(url_for("admin.bookings"))
     if new_status == booking.status:
         flash(f"Booking {booking.display_id} is already {new_status}.", "error")
+        return redirect(url_for("admin.bookings"))
+    if new_status not in ALLOWED_TRANSITIONS.get(booking.status, set()):
+        # e.g. trying to move a Completed/Cancelled booking, or an illogical jump.
+        flash(f"Can't change booking {booking.display_id} from "
+              f"{booking.status} to {new_status}.", "error")
         return redirect(url_for("admin.bookings"))
 
     booking.status = new_status

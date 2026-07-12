@@ -9,7 +9,7 @@ REVIEWS (Matthew) — connected to the database.
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from ..extensions import db
-from ..models import Review, Service
+from ..models import Review, Service, Booking
 
 reviews_bp = Blueprint("reviews", __name__, url_prefix="/reviews", template_folder="templates")
 
@@ -17,6 +17,26 @@ reviews_bp = Blueprint("reviews", __name__, url_prefix="/reviews", template_fold
 def stars(n):
     n = int(n or 0)
     return "★" * n + "☆" * (5 - n)
+
+
+def reviewable_services_for(user):
+    """Services this user is allowed to review right now: they have a
+    COMPLETED booking for it and haven't reviewed it yet. Returns a list
+    of Service objects. (This is the 'verified purchase' rule.)"""
+    if not user.is_authenticated:
+        return []
+    completed_ids = {
+        b.service_id for b in Booking.query.filter_by(
+            user_id=user.id, status="Completed").all()
+    }
+    already_reviewed = {
+        r.service_id for r in Review.query.filter_by(user_id=user.id).all()
+    }
+    allowed = completed_ids - already_reviewed
+    if not allowed:
+        return []
+    return (Service.query.filter(Service.id.in_(allowed))
+            .order_by(Service.name).all())
 
 
 @reviews_bp.route("/")
@@ -36,7 +56,10 @@ def index():
 
     reviews = query.order_by(Review.created_at.desc()).all()
     avg = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else 0.0
-    services = Service.query.filter_by(is_active=True).order_by(Service.name).all()
+
+    # Dropdown only offers services the user can actually review right now
+    # (a completed booking they haven't reviewed yet).
+    services = reviewable_services_for(current_user)
 
     # The logged-in user's OWN reviews that aren't Approved yet (Pending/Hidden).
     # These are deliberately excluded from the public `reviews` list above, so
@@ -61,11 +84,20 @@ def index():
 def submit():
     service_id = request.form.get("service_id", type=int)
     rating = request.form.get("rating", type=int)
+    title = (request.form.get("review_title") or "").strip()
     text = (request.form.get("review") or "").strip()
     service = Service.query.get(service_id) if service_id else None
 
     if not service or not rating or rating < 1 or rating > 5 or not text:
         flash("Please choose a service, a star rating, and write a short review.", "error")
+        return redirect(url_for("reviews.index"))
+
+    # Verified-purchase rule: you can only review a service you've had
+    # COMPLETED. (Blocks reviewing services you never actually used.)
+    has_completed = Booking.query.filter_by(
+        user_id=current_user.id, service_id=service.id, status="Completed").first()
+    if not has_completed:
+        flash("You can only review a service after a completed booking.", "error")
         return redirect(url_for("reviews.index"))
 
     already = Review.query.filter_by(user_id=current_user.id, service_id=service.id).first()
@@ -75,7 +107,8 @@ def submit():
 
     db.session.add(Review(
         user_id=current_user.id, service_id=service.id,
-        rating=rating, review_description=text, status="Pending",
+        rating=rating, review_title=(title or None),
+        review_description=text, status="Pending",
     ))
     db.session.commit()
 

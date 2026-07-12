@@ -17,7 +17,7 @@ The filename is kept as mock_data.py only so services.py's imports
 don't change. It is no longer mock data.
 =========================================================
 """
-from datetime import datetime
+from datetime import datetime, date
 
 from flask_login import current_user
 
@@ -28,17 +28,19 @@ from ..models import Booking, Notification, Review
 # Small helpers
 # =========================================================
 
-def _display_date(iso_date):
-    """Turn a stored '2026-07-13' into '13 Jul 2026'.
+def _display_date(value):
+    """Turn a booking date into '13 Jul 2026'.
 
-    The calendar (services.get_calendar_data) splits this on spaces and
-    expects  day / month-abbrev / year , so this exact format matters.
-    Falls back to the raw string if it isn't ISO for some reason.
+    Booking.date is now a real date object, but this also still accepts an
+    ISO string just in case. The calendar (services.get_calendar_data)
+    splits the result on spaces expecting day / month-abbrev / year.
     """
+    if isinstance(value, (date, datetime)):
+        return value.strftime("%d %b %Y")
     try:
-        return datetime.strptime(iso_date, "%Y-%m-%d").strftime("%d %b %Y")
+        return datetime.strptime(value, "%Y-%m-%d").strftime("%d %b %Y")
     except (ValueError, TypeError):
-        return iso_date or ""
+        return value or ""
 
 
 def _tidy_price(price):

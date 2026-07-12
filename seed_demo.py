@@ -132,8 +132,11 @@ def run():
 
         if Booking.query.count() == 0:
             for ui, si, date, time, addr, notes, status, pmethod, pstatus in BOOKINGS:
+                # date is an ISO string in the data above; Booking.date is now
+                # a real DATE column, so parse it into a date object.
+                booking_date = datetime.strptime(date, "%Y-%m-%d").date()
                 db.session.add(Booking(user_id=users[ui].id, service_id=services[si].id,
-                                       date=date, time=time, address=addr,
+                                       date=booking_date, time=time, address=addr,
                                        notes=notes, status=status,
                                        payment_method=pmethod, payment_status=pstatus))
             db.session.commit()

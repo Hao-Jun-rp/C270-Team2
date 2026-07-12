@@ -58,6 +58,7 @@
 <div class="card card-raised" id="leave-review" style="margin-top:24px">
   <h3>Leave a review</h3>
   {% if current_user.is_authenticated %}
+    {% if services %}
     <form action="{{ url_for('reviews.submit') }}" method="POST" style="margin-top:12px">
       <label style="font-weight:600;font-size:.8125rem">Service</label><br>
       <select class="input" name="service_id" required style="width:100%;margin:6px 0 16px">
@@ -81,11 +82,20 @@
       <div id="ratingHint" class="text-muted" style="font-size:.8125rem;margin:0 0 16px">Tap a star to rate.</div>
       <input type="hidden" name="rating" id="ratingValue" value="">
 
+      <label style="font-weight:600;font-size:.8125rem">Title <span class="text-muted" style="font-weight:400">(optional)</span></label><br>
+      <input class="input" type="text" name="review_title" maxlength="100" placeholder="Sum it up in a few words" style="width:100%;margin:6px 0 16px">
+
       <label style="font-weight:600;font-size:.8125rem">Your review</label><br>
       <textarea class="input" name="review" placeholder="Tell us what went well..." required style="width:100%;margin:6px 0 16px;resize:vertical" rows="3"></textarea><br>
 
       <button type="submit" class="btn btn-primary">Leave a review</button>
     </form>
+    {% else %}
+    <p class="text-muted" style="margin-top:8px">
+      You can leave a review once you've had a completed clean. After your booking is
+      marked complete, come back here (or use the “Write a review” button on your bookings).
+    </p>
+    {% endif %}
   {% else %}
     <p class="text-muted" style="margin-top:8px">Please <a href="{{ url_for('auth.login') }}">log in</a> to leave a review.</p>
   {% endif %}

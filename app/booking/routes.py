@@ -9,6 +9,7 @@ BOOKING (Ashish) — connected to the database.
   checked (Luhn, expiry, CVV) and then DISCARDED — never stored.
 - Submitting saves a real Booking row AND fires a real notification.
 - The list page shows that user's real bookings.
+- Customers can CANCEL or EDIT their own upcoming bookings (see bottom).
 """
 import math
 import re
@@ -120,8 +121,33 @@ def validate_card(form):
     return None
 
 
+def validate_slot(service, date_str, time_str):
+    """Shared date+slot validation used by BOTH create and edit.
+    Returns (parsed_date, error_message). parsed_date is a date object
+    when valid, else None."""
+    parsed_date = None
+    if date_str:
+        try:
+            parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            parsed_date = None
+
+    if not parsed_date:
+        return None, "That date doesn't look right — please pick a valid date."
+    if parsed_date < date.today():
+        return None, "You can't book a date in the past — please pick today or a later date."
+
+    valid_slots = slots_for(duration_hours(service.duration))
+    if time_str not in valid_slots:
+        return None, (f"That time slot doesn't fit {service.name} "
+                      f"({service.duration}) — please pick a slot from the list.")
+    if parsed_date == date.today() and slot_start_passed(time_str):
+        return None, "That time slot has already started — please pick a later slot."
+    return parsed_date, None
+
+
 # =========================================================
-# Routes
+# List + create
 # =========================================================
 @booking_bp.route("/")
 @login_required
@@ -149,8 +175,6 @@ def add_booking():
     today = date.today().isoformat()
 
     def show_form(form_values):
-        """Re-render the form (used for errors), keeping what was typed.
-        Card fields are deliberately NOT echoed back."""
         sid = form_values.get("service_id")
         return render_template(
             "booking/addbooking.html",
@@ -169,32 +193,15 @@ def add_booking():
 
         service = Service.query.get(service_id) if service_id else None
 
-        # Parse + validate the date: must be a real date, and not in the past.
-        parsed_date = None
-        if booking_date:
-            try:
-                parsed_date = datetime.strptime(booking_date, "%Y-%m-%d").date()
-            except ValueError:
-                parsed_date = None
-
         error = None
+        parsed_date = None
         if not service or not booking_date or not time or not address:
             error = "Please pick a service and fill in the date, time and address."
-        elif not parsed_date:
-            error = "That date doesn't look right — please pick a valid date."
-        elif parsed_date < date.today():
-            error = "You can't book a date in the past — please pick today or a later date."
-        elif time not in services_meta[service.id]["slots"]:
-            # Blocks stale/forged slots, e.g. a 1-hour slot for a 5-hour job.
-            error = (f"That time slot doesn't fit {service.name} "
-                     f"({service.duration}) — please pick a slot from the list.")
-        elif parsed_date == date.today() and slot_start_passed(time):
-            # Booking for TODAY: the slot's start time must still be ahead of
-            # us. (Rejecting past dates isn't enough — "09:00" is invalid at 3pm.)
-            error = "That time slot has already started — please pick a later slot."
-        elif payment_method not in PAYMENT_METHODS:
+        else:
+            parsed_date, error = validate_slot(service, booking_date, time)
+        if not error and payment_method not in PAYMENT_METHODS:
             error = "Please choose how you'd like to pay."
-        elif payment_method == "Card":
+        elif not error and payment_method == "Card":
             error = validate_card(request.form)  # None if the card is fine
 
         if error:
@@ -210,7 +217,7 @@ def add_booking():
         booking = Booking(
             user_id=current_user.id,
             service_id=service.id,
-            date=booking_date,
+            date=parsed_date,
             time=time,
             address=address,
             notes=notes,
@@ -221,11 +228,10 @@ def add_booking():
         db.session.add(booking)
         db.session.commit()
 
-        # Fire a REAL notification off the real booking (not hand-typed/demo data).
         from ..notifications.routes import create_notification
         create_notification(
             current_user.id,
-            f"Your booking for {service.name} on {booking_date} at {time} "
+            f"Your booking for {service.name} on {parsed_date.isoformat()} at {time} "
             f"has been received and is pending confirmation.",
             link=url_for("booking.index"),
         )
@@ -243,3 +249,117 @@ def add_booking():
         selected_slots=services_meta.get(preselect, {}).get("slots", []),
         form={"service_id": preselect},
     )
+
+
+# =========================================================
+# Customer self-service: EDIT and CANCEL own bookings
+# =========================================================
+# A customer can only touch a booking that is theirs AND still upcoming
+# (Pending or Confirmed). Completed/Cancelled bookings are locked.
+EDITABLE_STATUSES = ("Pending", "Confirmed")
+
+
+def _own_active_booking_or_none(booking_id):
+    """Fetch a booking only if it belongs to the current user and is still
+    Pending/Confirmed. Returns None otherwise (used to block tampering)."""
+    booking = Booking.query.filter_by(id=booking_id,
+                                      user_id=current_user.id).first()
+    if not booking or booking.status not in EDITABLE_STATUSES:
+        return None
+    return booking
+
+
+@booking_bp.route("/<int:booking_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_booking(booking_id):
+    booking = _own_active_booking_or_none(booking_id)
+    if not booking:
+        flash("That booking can't be edited (it may be completed or cancelled).",
+              "error")
+        return redirect(url_for("booking.index"))
+
+    # The service is fixed on edit — to change service, cancel + rebook.
+    service = booking.service
+    slots = slots_for(duration_hours(service.duration))
+    today = date.today().isoformat()
+
+    if request.method == "POST":
+        booking_date = request.form.get("date", "").strip()
+        time = request.form.get("time", "").strip()
+        address = request.form.get("address", "").strip()
+        notes = request.form.get("notes", "").strip()
+
+        error = None
+        if not booking_date or not time or not address:
+            error = "Please fill in the date, time and address."
+        else:
+            parsed_date, error = validate_slot(service, booking_date, time)
+
+        if error:
+            flash(error, "error")
+            return render_template("booking/editbooking.html", booking=booking,
+                                   service=service, slots=slots, today=today,
+                                   form={"date": booking_date, "time": time,
+                                         "address": address, "notes": notes})
+
+        # Did anything actually change? (used to decide re-confirmation)
+        changed = (parsed_date != booking.date or time != booking.time
+                   or address != booking.address or (notes or "") != (booking.notes or ""))
+
+        booking.date = parsed_date
+        booking.time = time
+        booking.address = address
+        booking.notes = notes
+
+        # Editing a CONFIRMED booking sends it back to Pending so the admin
+        # re-confirms it (availability may have changed). Pending stays Pending.
+        reverted = False
+        if changed and booking.status == "Confirmed":
+            booking.status = "Pending"
+            reverted = True
+
+        db.session.commit()
+
+        if reverted:
+            from ..notifications.routes import create_notification
+            create_notification(
+                current_user.id,
+                f"Your {service.name} booking was updated and is pending "
+                f"re-confirmation.",
+                link=url_for("booking.index"))
+            flash("Booking updated. Because you changed a confirmed booking, "
+                  "it's pending re-confirmation.", "success")
+        else:
+            flash("Booking updated.", "success")
+        return redirect(url_for("booking.index"))
+
+    # GET — pre-fill the form with the current values.
+    return render_template("booking/editbooking.html", booking=booking,
+                           service=service, slots=slots, today=today,
+                           form={"date": booking.date.isoformat(),
+                                 "time": booking.time,
+                                 "address": booking.address,
+                                 "notes": booking.notes or ""})
+
+
+@booking_bp.route("/<int:booking_id>/cancel", methods=["POST"])
+@login_required
+def cancel_booking(booking_id):
+    booking = _own_active_booking_or_none(booking_id)
+    if not booking:
+        flash("That booking can't be cancelled (it may be completed or already "
+              "cancelled).", "error")
+        return redirect(url_for("booking.index"))
+
+    booking.status = "Cancelled"
+    db.session.commit()
+
+    from ..notifications.routes import create_notification
+    create_notification(
+        current_user.id,
+        f"You cancelled your {booking.service.name} booking on "
+        f"{booking.date.isoformat()}.",
+        link=url_for("booking.index"))
+
+    flash(f"Your {booking.service.name} booking has been cancelled.", "success")
+    return redirect(url_for("booking.index"))

@@ -114,8 +114,11 @@
     var LABELS = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
     var current = 0;
 
+    // Fill stars up to n (1-5); pass 0 to clear.
     function paint(n) {
-      stars.forEach(function (s, i) { s.style.color = i < n ? GOLD : EMPTY; });
+      stars.forEach(function (s, i) {
+        s.style.color = i < n ? GOLD : EMPTY;
+      });
     }
     function select(n) {
       current = n;
@@ -131,6 +134,7 @@
       var value = i + 1;
       star.addEventListener("click", function () { select(value); });
       star.addEventListener("mouseenter", function () { paint(value); });
+      // Keyboard: Enter/Space picks; arrows move; Home/End jump.
       star.addEventListener("keydown", function (e) {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(value); }
         else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
@@ -141,8 +145,10 @@
         else if (e.key === "End") { e.preventDefault(); select(5); stars[4].focus(); }
       });
     });
+    // On mouse-out, snap back to the actual selection.
     group.addEventListener("mouseleave", function () { paint(current); });
 
+    // Don't let the form submit with no rating chosen.
     var form = group.closest("form");
     if (form) {
       form.addEventListener("submit", function (e) {

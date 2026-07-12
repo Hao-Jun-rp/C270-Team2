@@ -49,6 +49,19 @@ def slots_for(hours):
             for start in range(DAY_START, DAY_END - hours + 1)]
 
 
+def slot_start_passed(slot):
+    """True if this slot's START time is at or before the current time.
+    Used to reject 'today' bookings for slots that have already begun.
+    Slot looks like '09:00–12:00'; we read the start hour before the dash."""
+    try:
+        start = slot.split("–")[0]                 # "09:00"
+        start_hour, start_min = (int(x) for x in start.split(":"))
+    except (ValueError, IndexError):
+        return True  # unparseable -> treat as invalid/passed, be safe
+    now = datetime.now()
+    return (start_hour, start_min) <= (now.hour, now.minute)
+
+
 def build_services_meta(services):
     """Per-service info the form needs: price, duration text and the
     valid slots. Sent to the template as JSON so the slot dropdown can
@@ -175,6 +188,10 @@ def add_booking():
             # Blocks stale/forged slots, e.g. a 1-hour slot for a 5-hour job.
             error = (f"That time slot doesn't fit {service.name} "
                      f"({service.duration}) — please pick a slot from the list.")
+        elif parsed_date == date.today() and slot_start_passed(time):
+            # Booking for TODAY: the slot's start time must still be ahead of
+            # us. (Rejecting past dates isn't enough — "09:00" is invalid at 3pm.)
+            error = "That time slot has already started — please pick a later slot."
         elif payment_method not in PAYMENT_METHODS:
             error = "Please choose how you'd like to pay."
         elif payment_method == "Card":

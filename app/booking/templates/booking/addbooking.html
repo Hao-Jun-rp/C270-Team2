@@ -127,8 +127,22 @@ const durationHint = document.getElementById('durationHint');
 const amountDue = document.getElementById('amountDue');
 const cardFields = document.getElementById('cardFields');
 const cardInputs = ['cardName', 'cardNumber', 'cardExpiry', 'cardCvv'].map(id => document.getElementById(id));
+const dateInput = document.querySelector('input[name="date"]');
+const todayStr = "{{ today }}";  // YYYY-MM-DD, from the server
 
-// Rebuild the time-slot dropdown to match the selected service's duration.
+// Has this slot ("09:00–12:00") already started, if the booking is for today?
+function slotPassed(slot) {
+  if (!dateInput || dateInput.value !== todayStr) return false;  // only matters today
+  const start = slot.split('–')[0];               // "09:00"
+  const parts = start.split(':');
+  const now = new Date();
+  const slotMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  return slotMinutes <= nowMinutes;
+}
+
+// Rebuild the time-slot dropdown to match the selected service's duration,
+// and drop any slots that have already started (only when today is picked).
 function serviceChanged(keepTime) {
   const meta = META[serviceSelect.value];
   const previous = keepTime ? timeSelect.value : '';
@@ -141,16 +155,24 @@ function serviceChanged(keepTime) {
     return;
   }
 
+  const available = meta.slots.filter(slot => !slotPassed(slot));
   timeSelect.add(new Option('Choose a time…', ''));
-  meta.slots.forEach(slot => {
+  available.forEach(slot => {
     const opt = new Option(slot, slot);
     if (slot === previous) opt.selected = true;
     timeSelect.add(opt);
   });
-  durationHint.textContent = meta.name + ' takes ' + meta.duration.toLowerCase() +
-                             ' — each slot below covers the full job.';
+  if (available.length === 0) {
+    durationHint.textContent = 'No slots left for today — please pick another date.';
+  } else {
+    durationHint.textContent = meta.name + ' takes ' + meta.duration.toLowerCase() +
+                               ' — each slot below covers the full job.';
+  }
   amountDue.textContent = '$' + meta.price;
 }
+
+// Changing the date can change which slots are still available (e.g. today).
+if (dateInput) dateInput.addEventListener('change', () => serviceChanged(true));
 
 // Show card fields only when Card is chosen; toggle required to match.
 function paymentChanged() {

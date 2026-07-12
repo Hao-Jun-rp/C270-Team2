@@ -49,7 +49,7 @@ BOOKINGS = [
     (1, 1, "2026-06-28", "13:00–18:00", "12 Bishan St 22, #08-114, Singapore", "", "Completed", "PayNow", "Paid (demo)"),
     (4, 0, "2026-06-20", "09:00–12:00", "45 Tampines Ave 4, #12-330, Singapore", "Please bring eco-friendly products.", "Completed", "PayNow", "Paid (demo)"),
     (4, 2, "2026-07-02", "13:00–16:00", "One Raffles Place, #22-01, Singapore", "After office hours only.", "Completed", "Card", "Paid (demo)"),
-    (3, 5, "2026-06-30", "11:00–13:00", "88 Tanjong Pagar Rd, #05-12, Singapore", "", "Completed", "Cash", "Unpaid"),
+    (3, 5, "2026-06-30", "11:00–13:00", "88 Tanjong Pagar Rd, #05-12, Singapore", "", "Completed", "Cash", "Paid (cash on completion)"),
     (3, 3, "2026-07-25", "09:00–14:00", "88 Tanjong Pagar Rd, #05-12, Singapore", "Moving out, whole unit.", "Pending", "Cash", "Unpaid"),
     (2, 4, "2026-07-20", "15:00–17:00", "30 Clementi Ave 3, #10-45, Singapore", "", "Confirmed", "PayNow", "Paid (demo)"),
     (1, 0, "2026-07-18", "10:00–13:00", "12 Bishan St 22, #08-114, Singapore", "Same as last time.", "Confirmed", "Card", "Paid (demo)"),
@@ -61,7 +61,7 @@ BOOKINGS = [
     # a blue calendar event) and a second unreviewed COMPLETED booking
     # (a second "write a review" demo besides Home Cleaning).
     (4, 4, "2026-07-16", "10:00–12:00", "45 Tampines Ave 4, #12-330, Singapore", "Eco products only please.", "Confirmed", "PayNow", "Paid (demo)"),
-    (4, 5, "2026-06-10", "13:00–15:00", "45 Tampines Ave 4, #12-330, Singapore", "", "Completed", "Cash", "Unpaid"),
+    (4, 5, "2026-06-10", "13:00–15:00", "45 Tampines Ave 4, #12-330, Singapore", "", "Completed", "Cash", "Paid (cash on completion)"),
 ]
 
 # (user_idx, service_idx, rating, title, description, staff_reply, status)

@@ -99,6 +99,16 @@ def update_booking_status(booking_id):
         return redirect(url_for("admin.bookings"))
 
     booking.status = new_status
+
+    # Cash bookings are deliberately "Unpaid" until the job is done (that's
+    # the whole point of "pay after the clean"). The moment an admin marks
+    # the job Completed, the cash has been collected in person - so flip it
+    # to paid here. PayNow/Card bookings were already paid at booking time
+    # and are untouched.
+    if new_status == "Completed" and booking.payment_method == "Cash" \
+            and booking.payment_status == "Unpaid":
+        booking.payment_status = "Paid (cash on completion)"
+
     db.session.commit()
 
     # Tell the customer what changed (real notification, links to their bookings).

@@ -1,0 +1,54 @@
+<!-- ========================================================= -->
+<!-- Greeting Component -->
+<!-- Owner: Tristan
+-->
+<!--
+TODO (Authentication Integration)
+
+Replace mock greeting with current_user.
+
+Recommended:
+
+Good Morning
+Good Afternoon
+Good Evening
+
+depending on server time.
+
+Display current_user.name.
+-->
+<!-- ========================================================= -->
+
+<div class="card card-raised">
+
+    <h1>
+
+        Good Afternoon,
+
+        {{ current_user.name if current_user.is_authenticated else "Guest" }}
+
+        👋
+
+    </h1>
+
+    <p class="text-muted">
+
+        Welcome back.
+
+    </p>
+
+    <p>
+
+        You currently have
+
+        <strong>
+
+            {{ summary.upcoming }}
+
+        </strong>
+
+        upcoming booking(s).
+
+    </p>
+
+</div>

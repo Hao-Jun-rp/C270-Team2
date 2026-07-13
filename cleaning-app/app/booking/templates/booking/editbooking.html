@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Edit booking{% endblock %}
+{% block content %}
+<div class="container" style="padding-top:40px;padding-bottom:64px;max-width:640px">
+  <div style="margin-bottom:28px">
+    <a href="{{ url_for('booking.index') }}" style="font-size:.8125rem;color:var(--color-primary)">← My bookings</a>
+    <h1 style="margin-top:6px">Edit booking</h1>
+    <p style="color:var(--color-slate);margin:4px 0 0">
+      Change the date, time or address below.
+      {% if booking.status == 'Confirmed' %}
+      Because this booking is confirmed, saving changes will send it back for re-confirmation.
+      {% endif %}
+    </p>
+  </div>
+
+  <form method="POST" action="{{ url_for('booking.edit_booking', booking_id=booking.id) }}"
+        class="card card-raised" style="padding:28px;display:flex;flex-direction:column;gap:18px">
+
+    <!-- Service is fixed on edit; to change it, cancel and rebook. -->
+    <div>
+      <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Service</label>
+      <div class="input" style="width:100%;background:var(--color-cloud);display:flex;justify-content:space-between;align-items:center">
+        <span>{{ service.name }}</span>
+        <span class="text-muted" style="font-size:.8125rem">{{ service.duration }}</span>
+      </div>
+      <p class="text-muted" style="font-size:.75rem;margin:6px 0 0">To change the service, cancel this booking and make a new one.</p>
+    </div>
+
+    <!-- Date + Time -->
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px">
+        <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Date</label>
+        <input class="input" type="date" name="date" value="{{ form.date }}" min="{{ today }}" required style="width:100%">
+      </div>
+      <div style="flex:1;min-width:180px">
+        <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Time slot</label>
+        <select class="input" name="time" required style="width:100%">
+          <option value="">Choose a time…</option>
+          {% for slot in slots %}
+          <option value="{{ slot }}" {% if form.time == slot %}selected{% endif %}>{{ slot }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Address -->
+    <div>
+      <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Address</label>
+      <input class="input" type="text" name="address" value="{{ form.address }}" required style="width:100%">
+    </div>
+
+    <!-- Notes -->
+    <div>
+      <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Notes <span class="text-muted" style="font-weight:400">(optional)</span></label>
+      <textarea class="input" name="notes" rows="3" style="width:100%;resize:vertical">{{ form.notes }}</textarea>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:6px">
+      <a href="{{ url_for('booking.index') }}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary" style="flex:1">Save changes</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

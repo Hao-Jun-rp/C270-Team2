@@ -25,11 +25,11 @@ def d(s):
 
 # (name, email, role)  -  Marcus is the seeded ADMIN; everyone else is a customer.
 USERS = [
-    ("Marcus", "marcus@sparkle.sg", "admin"),
-    ("Tristan", "tristan@example.com", "customer"),
-    ("Hazirah", "hazirah@example.com", "customer"),
-    ("Ashish", "ashish@example.com", "customer"),
-    ("Aisha", "aisha@example.com", "customer"),
+    ("Marcus Tan", "marcus@sparkle.sg", "admin"),
+    ("Tristan Lee", "tristan@example.com", "customer"),
+    ("Hazirah Binte", "hazirah@example.com", "customer"),
+    ("Ashish Kumar", "ashish@example.com", "customer"),
+    ("Aisha Rahman", "aisha@example.com", "customer"),
 ]
 
 SERVICES = [

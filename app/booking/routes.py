@@ -210,9 +210,12 @@ def add_booking():
                               "time": time, "address": address, "notes": notes,
                               "payment_method": payment_method})
 
-        # Demo payment: PayNow/Card are treated as paid; Cash = pay after
-        # the clean. Card details above were validated and thrown away.
-        payment_status = "Paid (demo)" if payment_method in ("PayNow", "Card") else "Unpaid"
+        # Demo payment: PayNow/Card are AUTHORIZED at booking time (the money
+        # is reserved, not taken) and only captured -> "Paid (demo)" when the
+        # admin CONFIRMS the booking. Cash = pay after the clean. Card details
+        # above were validated and thrown away.
+        payment_status = ("Authorized (demo)" if payment_method in ("PayNow", "Card")
+                          else "Unpaid")
 
         booking = Booking(
             user_id=current_user.id,
@@ -236,7 +239,8 @@ def add_booking():
             link=url_for("booking.index"),
         )
 
-        pay_note = "Payment received (demo)." if payment_status.startswith("Paid") \
+        pay_note = ("Payment authorized (demo) - it is captured when we "
+                    "confirm your booking.") if payment_status.startswith("Authorized") \
                    else "You'll pay after the clean."
         flash(f"Booking for {service.name} requested — we'll confirm it shortly! {pay_note}",
               "success")
@@ -316,6 +320,10 @@ def edit_booking(booking_id):
         reverted = False
         if changed and booking.status == "Confirmed":
             booking.status = "Pending"
+            # Keep the demo-payment story consistent: Pending means "not captured
+            # yet", so a captured PayNow/Card payment goes back to Authorized.
+            if booking.payment_status == "Paid (demo)":
+                booking.payment_status = "Authorized (demo)"
             reverted = True
 
         db.session.commit()
@@ -352,6 +360,10 @@ def cancel_booking(booking_id):
         return redirect(url_for("booking.index"))
 
     booking.status = "Cancelled"
+    # Release the demo payment: an authorized/captured PayNow/Card amount is
+    # "refunded" when the customer cancels. Cash was never collected.
+    if booking.payment_status in ("Authorized (demo)", "Paid (demo)"):
+        booking.payment_status = "Refunded (demo)"
     db.session.commit()
 
     from ..notifications.routes import create_notification

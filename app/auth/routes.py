@@ -135,3 +135,85 @@ def change_password():
         flash("Password changed.", "success")
 
     return redirect(url_for("auth.profile"))
+
+
+# ---------------------------------------------------------------------------
+# FORGOT / RESET PASSWORD (demo-friendly, no email server needed)
+#
+# Real systems email the user a signed, time-limited reset link. We use the
+# exact same mechanism (itsdangerous, which Flask itself uses for sessions)
+# but DISPLAY the link on screen instead of emailing it, so the demo never
+# depends on an SMTP server. In production, the render_template call in
+# forgot_password() would be replaced by send_email(user.email, reset_link).
+# ---------------------------------------------------------------------------
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+
+RESET_TOKEN_MAX_AGE = 30 * 60   # links die after 30 minutes
+
+
+def _reset_serializer():
+    """A serializer that signs tokens with the app's SECRET_KEY, so a token
+    can't be forged or tampered with. The 'salt' namespaces these tokens so
+    they can never be confused with any other signed value in the app."""
+    from flask import current_app
+    return URLSafeTimedSerializer(current_app.config["SECRET_KEY"],
+                                  salt="sparkle-password-reset")
+
+
+@auth_bp.route("/forgot", methods=["GET", "POST"])
+def forgot_password():
+    # Logged-in users have the normal "change password" page in their profile.
+    if current_user.is_authenticated:
+        return redirect(url_for("auth.profile"))
+
+    reset_link = None
+    email = ""
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            # NOTE: a production app would show the same vague message either
+            # way (so attackers can't probe which emails exist). We show the
+            # honest error to keep the demo easy to follow.
+            flash("No account found with that email.", "error")
+        else:
+            token = _reset_serializer().dumps({"uid": user.id})
+            reset_link = url_for("auth.reset_password", token=token,
+                                 _external=True)
+            flash("Reset link generated - it works for 30 minutes.", "success")
+    return render_template("auth/forgot.html", reset_link=reset_link,
+                           email=email)
+
+
+@auth_bp.route("/reset/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    # 1) The token must be genuine (signed by US) and younger than 30 min.
+    try:
+        data = _reset_serializer().loads(token, max_age=RESET_TOKEN_MAX_AGE)
+    except SignatureExpired:
+        flash("That reset link has expired - request a new one below.", "error")
+        return redirect(url_for("auth.forgot_password"))
+    except BadSignature:
+        flash("That reset link is invalid - request a new one below.", "error")
+        return redirect(url_for("auth.forgot_password"))
+
+    user = User.query.get(data.get("uid"))
+    if not user:
+        flash("That account no longer exists.", "error")
+        return redirect(url_for("auth.forgot_password"))
+
+    # 2) Same password rules as registration.
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm = request.form.get("confirm", "")
+        if len(password) < 6:
+            flash("Password must be at least 6 characters.", "error")
+        elif password != confirm:
+            flash("Passwords do not match.", "error")
+        else:
+            user.set_password(password)   # re-hashed with Werkzeug, as always
+            db.session.commit()
+            flash("Password updated! You can log in with it now.", "success")
+            return redirect(url_for("auth.login"))
+
+    return render_template("auth/reset.html", token=token, user=user)

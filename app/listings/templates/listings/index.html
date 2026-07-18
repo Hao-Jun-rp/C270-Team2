@@ -85,6 +85,10 @@
             data-rating="{{ service.rating }}"
         >
 
+            {# Services added by an admin may have no image yet - never
+               concatenate None into the path (it crashed this page before).
+               Show a branded placeholder instead. #}
+            {% if service.image %}
             <img
                 src="{{ url_for('static', filename='images/' + service.image) }}"
                 alt="{{ service.name }}"
@@ -96,6 +100,21 @@
                     margin-bottom:18px;
                 "
             >
+            {% else %}
+            <div style="
+                    width:100%;
+                    height:220px;
+                    border-radius:15px;
+                    margin-bottom:18px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    background:linear-gradient(135deg, var(--color-primary, #0C7D80), var(--color-aqua, #14B8A6));
+                    color:#fff;
+                    font-size:3rem;
+                    font-weight:700;
+                ">{{ service.name[0]|upper }}</div>
+            {% endif %}
 
             <h2 style="margin-bottom:8px;">
                 {{ service.name }}

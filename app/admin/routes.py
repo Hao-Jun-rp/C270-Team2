@@ -125,11 +125,22 @@ def update_booking_status(booking_id):
 
     booking.status = new_status
 
+    # --- Demo payment lifecycle ---
+    # PayNow/Card money is only AUTHORIZED at booking time; confirming the
+    # booking is when it's captured and becomes "Paid (demo)". This fixes
+    # the "booking is Pending but already Paid" logic gap.
+    if new_status == "Confirmed" and booking.payment_status == "Authorized (demo)":
+        booking.payment_status = "Paid (demo)"
+
+    # Cancelling releases/refunds any authorized or captured demo payment.
+    if new_status == "Cancelled" and booking.payment_status in (
+            "Authorized (demo)", "Paid (demo)"):
+        booking.payment_status = "Refunded (demo)"
+
     # Cash bookings are deliberately "Unpaid" until the job is done (that's
     # the whole point of "pay after the clean"). The moment an admin marks
     # the job Completed, the cash has been collected in person - so flip it
-    # to paid here. PayNow/Card bookings were already paid at booking time
-    # and are untouched.
+    # to paid here.
     if new_status == "Completed" and booking.payment_method == "Cash" \
             and booking.payment_status == "Unpaid":
         booking.payment_status = "Paid (cash on completion)"

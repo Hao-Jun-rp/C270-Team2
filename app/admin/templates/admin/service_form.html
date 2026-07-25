@@ -21,7 +21,12 @@
     </div>
     <div>
       <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Category</label>
-      <input class="input" name="category" value="{{ cur.category }}" required style="width:100%" placeholder="e.g. Home, Deep Clean, Office">
+      <select class="input" name="category" required style="width:100%">
+        <option value="" disabled {{ 'selected' if not cur.category else '' }}>Select a category…</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {{ 'selected' if cur.category == c else '' }}>{{ c }}</option>
+        {% endfor %}
+      </select>
     </div>
     <div>
       <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Description</label>

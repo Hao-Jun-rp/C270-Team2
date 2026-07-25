@@ -30,6 +30,7 @@ from flask import (Blueprint, render_template, request, redirect,
 from ..extensions import db
 from ..models import User, Service, Booking, Review, Notification
 from ..notifications.routes import create_notification
+from ..constants import CATEGORIES
 from .decorators import admin_required
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin",
@@ -239,6 +240,8 @@ def _read_service_form(form):
 
     if not name or not category or not description or not duration:
         return None, "Name, category, description and duration are all required."
+    if category not in CATEGORIES:
+        return None, "Please choose a category from the list."
     try:
         price = float(price_raw)
         if price < 0:
@@ -260,14 +263,14 @@ def new_service():
         if error:
             flash(error, "error")
             return render_template("admin/service_form.html",
-                                   service=None, form=request.form)
+                                   service=None, form=request.form, categories=CATEGORIES)
         service = Service(created_by=current_admin_id(), is_active=True, **data)
         db.session.add(service)
         db.session.commit()
         flash(f"Service '{service.name}' created.", "success")
         return redirect(url_for("admin.services"))
 
-    return render_template("admin/service_form.html", service=None, form={})
+    return render_template("admin/service_form.html", service=None, form={}, categories=CATEGORIES)
 
 
 @admin_bp.route("/services/<int:service_id>/edit", methods=["GET", "POST"])
@@ -279,7 +282,7 @@ def edit_service(service_id):
         if error:
             flash(error, "error")
             return render_template("admin/service_form.html",
-                                   service=service, form=request.form)
+                                   service=service, form=request.form, categories=CATEGORIES)
         for key, value in data.items():
             setattr(service, key, value)
         service.updated_at = datetime.utcnow()
@@ -287,7 +290,7 @@ def edit_service(service_id):
         flash(f"Service '{service.name}' updated.", "success")
         return redirect(url_for("admin.services"))
 
-    return render_template("admin/service_form.html", service=service, form={})
+    return render_template("admin/service_form.html", service=service, form={}, categories=CATEGORIES)
 
 
 @admin_bp.route("/services/<int:service_id>/toggle", methods=["POST"])

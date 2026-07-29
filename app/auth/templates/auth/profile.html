@@ -1,13 +1,33 @@
 {% extends "base.html" %}
 {% block title %}Profile &middot; Sparkle{% endblock %}
 {% block content %}
+<div class="page-narrow">
   <h1>Your profile</h1>
-  <div class="card card-raised" style="max-width:480px;margin-top:24px">
-    <p class="field-label">Name</p>
-    <p style="margin-bottom:16px">{{ user.name }}</p>
-    <p class="field-label">Email</p>
-    <p style="margin-bottom:16px">{{ user.email }}</p>
-    <p class="field-label">Member since</p>
-    <p>{{ user.created_at.strftime('%d %b %Y') }}</p>
+
+  <div class="card card-raised" style="margin-top:24px">
+    <h3>Account details</h3>
+    <form method="POST" action="{{ url_for('auth.update_profile') }}">
+      <label class="field-label">Name</label>
+      <input class="input" type="text" name="name" value="{{ user.name }}" required style="margin-bottom:16px">
+      <label class="field-label">Email</label>
+      <input class="input" type="email" name="email" value="{{ user.email }}" required style="margin-bottom:20px">
+      <button class="btn btn-primary" type="submit">Save changes</button>
+    </form>
   </div>
+
+  <div class="card card-raised" style="margin-top:24px">
+    <h3>Change password</h3>
+    <form method="POST" action="{{ url_for('auth.change_password') }}">
+      <label class="field-label">Current password</label>
+      <input class="input" type="password" name="current" required style="margin-bottom:16px">
+      <label class="field-label">New password</label>
+      <input class="input" type="password" name="new" placeholder="At least 6 characters" required style="margin-bottom:16px">
+      <label class="field-label">Confirm new password</label>
+      <input class="input" type="password" name="confirm" required style="margin-bottom:20px">
+      <button class="btn btn-primary" type="submit">Update password</button>
+    </form>
+  </div>
+
+  <p class="text-muted" style="margin-top:16px;font-size:14px;text-align:center">Member since {{ user.created_at.strftime('%d %b %Y') }}</p>
+</div>
 {% endblock %}

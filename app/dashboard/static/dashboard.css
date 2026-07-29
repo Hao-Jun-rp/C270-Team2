@@ -1,0 +1,80 @@
+/*
+=========================================================
+Dashboard Styles
+=========================================================
+
+Only dashboard-specific styling belongs here.
+
+General site styles belong in theme.css
+
+=========================================================
+*/
+
+
+
+/* =========================================================
+   FullCalendar Styling
+
+   Makes calendar events look interactive.
+
+   Future:
+   Marcus does NOT need to modify these styles when
+   connecting the Booking database.
+
+========================================================= */
+
+.fc-event{
+
+    cursor:pointer;
+
+    transition:all .2s ease;
+
+    border-radius:8px;
+
+}
+
+.fc-event:hover{
+
+    transform:scale(1.03);
+
+    filter:brightness(1.08);
+
+    box-shadow:0 3px 10px rgba(0,0,0,.15);
+
+}
+
+.fc-daygrid-event{
+
+    font-weight:600;
+
+}
+
+/* =========================================================
+   Selected Booking Card
+========================================================= */
+
+#selectedBookingCard p{
+
+    margin:.55rem 0;
+
+    line-height:1.6;
+
+}
+
+#selectedBookingCard strong{
+
+    display:inline-block;
+
+    min-width:90px;
+
+}
+
+/* =========================================================
+   Today's Date
+========================================================= */
+
+.fc .fc-day-today{
+
+    background:#EEF6FF !important;
+
+}

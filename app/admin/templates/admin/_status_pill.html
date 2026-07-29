@@ -1,0 +1,7 @@
+{%- set colors = {
+  "Pending": "var(--color-warning)", "Confirmed": "var(--color-primary)",
+  "Completed": "var(--color-leaf)", "Cancelled": "var(--color-slate)",
+  "Approved": "var(--color-leaf)", "Hidden": "var(--color-slate)"
+} -%}
+{%- set c = colors.get(b.status, "var(--color-slate)") -%}
+<span class="pill" style="background:var(--color-cloud);color:{{ c }};border:1px solid {{ c }}">{{ b.status }}</span>

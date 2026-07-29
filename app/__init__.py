@@ -21,19 +21,23 @@ def create_app(config_class=Config):
     login_manager.login_view = "auth.login"  # where to send logged-out users
 
     # ---- Register each teammate's feature ----
+    from .main.routes import main_bp
     from .auth.routes import auth_bp
     from .dashboard.routes import dashboard_bp
     from .listings.routes import listings_bp
     from .booking.routes import booking_bp
     from .reviews.routes import reviews_bp
     from .notifications.routes import notifications_bp
+    from .admin.routes import admin_bp
 
+    app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(listings_bp)
     app.register_blueprint(booking_bp)
     app.register_blueprint(reviews_bp)
     app.register_blueprint(notifications_bp)
+    app.register_blueprint(admin_bp)
 
     # Create the database file + tables the first time we run.
     with app.app_context():

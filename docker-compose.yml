@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    image: sparkle-app:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - MYSQL_SSL_CA=${MYSQL_SSL_CA:-/app/certs/aiven-ca.pem}
+    volumes:
+      - ./certs:/app/certs:ro
+    restart: unless-stopped

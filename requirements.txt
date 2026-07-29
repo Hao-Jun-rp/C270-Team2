@@ -8,3 +8,4 @@ pytest==8.3.4
 PyMySQL==1.1.1          # the MySQL driver SQLAlchemy talks through
 cryptography==44.0.0    # required for MySQL 8's caching_sha2_password auth
 python-dotenv==1.0.1    # loads DATABASE_URL etc. from your .env file
+gunicorn==23.0.0

@@ -68,6 +68,7 @@ class User(UserMixin, db.Model):
         return self.role == "admin"
 
 
+
 # ============================================================
 #  Service table  (Hazirah - listings)  ->  table name: "service"
 #  This is the "hub" that bookings and reviews both link to.

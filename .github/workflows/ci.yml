@@ -2,6 +2,8 @@ name: Sparkle CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 jobs:
@@ -26,12 +28,14 @@ jobs:
         run: python -m pytest
 
       - name: Login to Docker Hub
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push Docker image
+        if: github.event_name == 'push'
         uses: docker/build-push-action@v5
         with:
           context: .

@@ -34,3 +34,14 @@ class Config:
             "connect_args": {"ssl": {"ca": _ca}},
             "pool_pre_ping": True,
         }
+
+    # ---- Session cookie hardening ----
+    # Secure=True tells the browser to send the session cookie ONLY over HTTPS.
+    # Correct in production, but it would break local development over
+    # http://localhost, so it is opt-in via an env var set only on the server.
+    SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "0") == "1"
+    # Blocks JavaScript from reading the cookie (mitigates session theft via XSS).
+    SESSION_COOKIE_HTTPONLY = True
+    # Not sent on cross-site POSTs, which blunts CSRF. "Lax" still allows
+    # normal link navigation, so logging in and browsing are unaffected.
+    SESSION_COOKIE_SAMESITE = "Lax"

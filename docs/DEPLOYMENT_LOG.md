@@ -38,8 +38,8 @@ This file is committed to the repo.
 | Docker Engine | 29.7.0 |
 | Docker Compose | v5.3.1 |
 | Container port | 8000 (gunicorn) |
-| Image (current) | `sparkle-app:local` — built on the server, **temporary** |
-| Image (target) | `sparkleteam2/sparkle-app:<tag>` from Docker Hub, once Tristan's pipeline pushes |
+| Image (current) | `c270sparkleteam2/sparkle:latest` — built and pushed by GitHub Actions |
+| Registry | Docker Hub, **public** repo — no `docker login` needed on the server |
 | TLS certificate | Let's Encrypt, expires 2026-10-29, auto-renewing |
 
 ---
@@ -462,54 +462,298 @@ df -h
 docker image prune -a        # removes images not used by a running container
 ```
 
-**To deploy a new version (current, temporary process):**
+**To deploy a new version (current process):**
+
+Wait for the GitHub Actions run on `main` to go green, then:
 
 ```bash
-# laptop: git pull && pytest && git archive && scp
-# server:
-cd ~/sparkle && unzip -o ~/sparkle-src.zip
-docker build -t sparkle-app:local .
-docker stop sparkle && docker rm sparkle
-docker run -d --name sparkle --restart unless-stopped -p 8000:8000 \
-  --env-file ~/sparkle/.env -v ~/sparkle/certs:/app/certs:ro sparkle-app:local
-```
-
-**To deploy a new version (target process, once CI pushes images):**
-
-```bash
-docker pull sparkleteam2/sparkle-app:<tag>
+docker pull c270sparkleteam2/sparkle:latest
 docker stop sparkle && docker rm sparkle
 docker run -d --name sparkle --restart unless-stopped -p 8000:8000 \
   --env-file ~/sparkle/.env -v ~/sparkle/certs:/app/certs:ro \
-  sparkleteam2/sparkle-app:<tag>
+  c270sparkleteam2/sparkle:latest
+
+sleep 5     # gunicorn needs a moment; curling immediately returns 502
+curl -s -o /dev/null -w "%{http_code}\n" https://sparkle-team2.duckdns.org/listings
 ```
+
+To test a candidate image without risking the live site, run it on port 8001
+first (see Phase 8) and only swap once it returns 200.
 
 Pin an explicit tag for the demo rather than `:latest` — `latest` moves every
 time anyone merges, and it should not move underneath a live demo.
 
 ---
 
-## Phase 6 — Secrets to AWS SSM Parameter Store — NOT STARTED
+## Phase 8 — Switched to the CI-built image (31 Jul 2026)
 
-This is my **Technical Initiative & Depth** item (beyond the core brief).
+Until now the server built its own image from source — a temporary bootstrap so
+the Nginx/TLS work could proceed before the pipeline existed. Tristan's GitHub
+Actions workflow now builds and pushes `c270sparkleteam2/sparkle:latest` to a
+**public** Docker Hub repo on every push to `main`, so the server pulls instead
+of builds.
 
-**The problem with the current setup:** `~/sparkle/.env` is a plaintext file on
-disk containing the live database password. Anyone with server access or a
-stray backup reads it. It cannot be rotated without editing the file by hand on
-every host, there is no audit trail of who read it, and it is invisible to any
-access-control system.
+**This is the point where the pipeline and the deployment became one system**
+rather than two things that happened to exist.
 
-**The plan:**
-1. Store `SECRET_KEY` and `DATABASE_URL` as **SecureString** parameters in SSM
-   Parameter Store (encrypted with KMS).
-2. Attach an **IAM role** to the instance granting read access to *only*
-   `/sparkle/prod/*` — least privilege, no wildcards.
-3. Fetch parameters at container start via the instance role, so no long-lived
-   credentials exist anywhere on disk.
-4. Delete `.env` from the server.
+### Tested on a spare port before touching the live site
 
-To be filled in when done — commands, the IAM policy JSON, and how it was
-verified.
+```bash
+docker pull c270sparkleteam2/sparkle:latest
+
+docker run -d --name sparkle-test -p 8001:8000 \
+  --env-file ~/sparkle/.env -v ~/sparkle/certs:/app/certs:ro \
+  c270sparkleteam2/sparkle:latest
+
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8001/listings
+```
+
+Running the candidate on 8001 while 8000 stayed live meant a broken image would
+have been discovered with the site still up.
+
+### Confirming the image actually contained my change
+
+My cookie hardening was merged to `main` shortly before. Rather than assume CI
+had rebuilt, I read the file **inside the image**:
+
+```bash
+docker run --rm c270sparkleteam2/sparkle:latest grep -A1 SESSION_COOKIE_SECURE app/config.py
+```
+
+An earlier attempt to infer this from `curl -sI /login | grep set-cookie`
+returned nothing and proved nothing — a plain GET of the login page doesn't
+modify the session, so Flask never sets a cookie. `/dashboard` does (it
+redirects with a flash message). Checking the artifact directly is the reliable
+test; inferring from a side effect is not.
+
+### The swap
+
+```bash
+docker stop sparkle-test && docker rm sparkle-test
+docker stop sparkle && docker rm sparkle
+docker run -d --name sparkle --restart unless-stopped -p 8000:8000 \
+  --env-file ~/sparkle/.env -v ~/sparkle/certs:/app/certs:ro \
+  c270sparkleteam2/sparkle:latest
+```
+
+Verified:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://sparkle-team2.duckdns.org/listings
+# 200
+curl -sI https://sparkle-team2.duckdns.org/dashboard | grep -i set-cookie
+# Set-Cookie: session=...; Secure; HttpOnly; Path=/; SameSite=Lax
+```
+
+### Observed: brief 502 during the swap
+
+The first curl immediately after `docker run` returned **502**. The container
+showed `Up Less than a second` — Nginx had nothing to proxy to while gunicorn
+was still starting. It returned 200 moments later.
+
+This is a real (small) downtime window in the current deploy process:
+stop-then-start means a few seconds where the site is down. The production
+answer is a health-checked rolling deploy — start the new container, wait until
+it reports healthy, *then* switch traffic — which is where Hao Jun's `/health`
+endpoint becomes useful beyond monitoring.
+
+Acceptable for this project; worth naming as a known limitation rather than
+pretending the deploy is seamless.
+
+### Interface contract with the pipeline
+
+These values must match across Tristan's Dockerfile/workflow and this server.
+Changing any of them without telling the other person breaks production with no
+error in the application logs:
+
+| Item | Value |
+|---|---|
+| Image | `c270sparkleteam2/sparkle` (**not** `sparkle-app`) |
+| Tag consumed | `latest` (an immutable `${{ github.sha }}` tag has been requested for demo pinning) |
+| Container port | 8000 |
+| Entrypoint | gunicorn → `app:create_app()` |
+| Env vars | `SECRET_KEY`, `DATABASE_URL`, `MYSQL_SSL_CA`, `SESSION_COOKIE_SECURE` |
+| Cert mount | host `~/sparkle/certs` → container `/app/certs` (read-only) |
+
+### Still manual
+
+The pipeline stops at pushing the image. Pulling and restarting on the server is
+done by hand. Automating that step (`build → test → deploy`) is the remaining
+gap between a Good and a Complete pipeline, and requires either an SSH key in
+GitHub secrets or AWS SSM Run Command. To be designed jointly with Tristan,
+since it needs credentials for this server.
+
+---
+
+## Phase 6 — Secrets in AWS SSM Parameter Store — DONE (31 Jul 2026)
+
+My **Technical Initiative & Depth** item. The server now holds **no secrets
+file at all**; `~/sparkle/.env` has been deleted.
+
+### The problem being solved
+
+`.env` on disk was a permanent plaintext copy of the live database password.
+Anyone with server access, a stray backup, or a snapshot could read it. Rotating
+it meant hand-editing a file on every host, and there was no record of who read
+it or when.
+
+### What was built
+
+**1. A least-privilege IAM policy** (`SparkleProdParameterRead`) — read-only,
+scoped to one parameter path:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadSparkleProdParameters",
+      "Effect": "Allow",
+      "Action": ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"],
+      "Resource": "arn:aws:ssm:ap-southeast-1:891858635640:parameter/sparkle/prod/*"
+    },
+    {
+      "Sid": "DecryptWithDefaultSsmKey",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": { "kms:ViaService": "ssm.ap-southeast-1.amazonaws.com" }
+      }
+    }
+  ]
+}
+```
+
+No write actions. No `*` on the resource. The `kms:Decrypt` statement is needed
+because SecureString values are encrypted — and the `kms:ViaService` condition
+restricts that decrypt power to requests arriving *through SSM*, so it cannot be
+used against anything else in the account.
+
+**2. An IAM role** (`SparkleProdInstanceRole`) trusting the EC2 service, with
+that policy attached, assigned to instance `i-01cfeb68e8fa7700f`.
+
+**3. Two SecureString parameters**, created **from the console** (see below):
+`/sparkle/prod/SECRET_KEY` and `/sparkle/prod/DATABASE_URL`.
+
+**4. `deploy.sh`** on the server — fetches both parameters at deploy time,
+pulls the image, replaces the container, and polls until the app returns 200
+before reporting success.
+
+### Verification
+
+```bash
+aws sts get-caller-identity --region ap-southeast-1
+# Arn: arn:aws:sts::891858635640:assumed-role/SparkleProdInstanceRole/i-01cfeb68e8fa7700f
+```
+
+No `aws configure` was ever run. No access key exists on the machine. The
+instance asks the metadata service who it is and receives **temporary,
+auto-rotating credentials**. That is the substantive difference from a file on
+disk: there is no static secret to steal, and every call is recorded in
+CloudTrail against the instance ID.
+
+Negative test — proving the policy actually restricts:
+
+```bash
+aws ssm get-parameter --name "/some/other/thing" --region ap-southeast-1
+# AccessDeniedException: not authorized to perform ssm:GetParameter
+```
+
+### Read-only proved itself in practice
+
+The first attempt at creating the parameters ran `aws ssm put-parameter` **from
+the server** and was refused:
+
+```
+AccessDeniedException: ... not authorized to perform: ssm:PutParameter
+```
+
+That is the policy working as designed, not a fault. **Writing a secret is an
+administrator action; reading one is the application's action.** They belong to
+different identities, and the web server only has the second. If this server
+were compromised, an attacker could read these two values and could *not*
+overwrite production credentials or read anything else in the account.
+
+Parameters are therefore created and rotated **from the console by an
+administrator**. Granting `ssm:PutParameter` to the instance to make one command
+convenient would have quietly destroyed the property this whole item claims.
+
+### Rotation, demonstrated
+
+`SECRET_KEY` was rotated during setup (the stored value was found to be 28
+characters rather than the expected 64 — a bad paste). The fix was: edit the
+value in the console, re-run `./deploy.sh`. One console edit, one command, no
+files touched, no image rebuilt. Under the old `.env` model the same change
+meant hand-editing a file on every host.
+
+Rotating the session key logs everyone out, since it signs session cookies —
+expected, and harmless here.
+
+### Final proof
+
+```bash
+rm ~/sparkle/.env
+./deploy.sh          # -> got SECRET_KEY (64 chars) and DATABASE_URL (109 chars)
+                     # -> healthy after 3s (HTTP 200)
+ls -la ~/sparkle/    # no .env present
+```
+
+The application runs with no secrets file anywhere on the server.
+
+### Honest limitation
+
+`docker inspect sparkle` still shows these values, because that is how Docker
+environment variables work — `--env-file` had exactly the same property. What
+changed is that secrets **no longer persist on disk**: they are fetched at
+deploy time, live only in the container's environment, and vanish when it stops.
+Rotation is centralised and reads are audited.
+
+Eliminating the `docker inspect` exposure too would mean fetching parameters
+inside the container at startup (an entrypoint change to the Dockerfile, which
+is Ashish's file) or using a secrets-injection sidecar. Out of scope here, and
+the Dockerfile is deliberately not being changed mid-project.
+
+---
+
+## Phase 6b — SSM Run Command (foundation for automated deploys)
+
+Parameter Store lets the instance *read secrets*. Run Command lets AWS *execute
+commands on the instance*. Same service family, separate permission — so the
+AWS-managed policy `AmazonSSMManagedInstanceCore` was attached to the same role.
+
+The SSM Agent ships on the Ubuntu AMI as a **snap**, not a deb, so the service
+is `snap.amazon-ssm-agent.amazon-ssm-agent.service` — not
+`amazon-ssm-agent.service`, and its log is not in `/var/log/amazon-ssm-agent/`.
+Restarting it after attaching the policy made it register.
+
+Verified in Fleet Manager: instance Online, agent 3.3.4793.0. Then end-to-end
+via Run Command with document `AWS-RunShellScript`:
+
+```
+sudo -u ubuntu /home/ubuntu/deploy.sh
+```
+
+Result: **Success, 0 errors, 7 seconds.**
+
+`sudo -u ubuntu` matters: Run Command executes as **root**, so `$HOME` would
+resolve to `/root` and the script would not find the Aiven certificate at
+`~/sparkle/certs` — the container would start and then fail to reach the
+database.
+
+**Why this route rather than SSH-based deployment:** for GitHub Actions to SSH
+in, port 22 would have to be opened to GitHub's runner IP ranges (broad, and
+they change) or to the world — undoing the security-group hardening documented
+in Phase 1, and requiring a production SSH private key to be stored in GitHub.
+With SSM the agent polls **outbound**, so no inbound port opens at all and no
+SSH key leaves this machine.
+
+**Remaining piece (with Tristan):** GitHub needs permission to call
+`ssm:SendCommand`. Either an IAM user with access keys stored in GitHub secrets,
+or GitHub OIDC federation — where GitHub proves its identity to AWS and receives
+temporary credentials, so no long-lived AWS keys are stored anywhere. OIDC is
+the stronger option and matches the no-static-credentials pattern already used
+on the instance.
 
 ---
 

@@ -1,3 +1,8 @@
+"""
+Tests for the Admin Dashboard feature (Tristan).
+Run all tests:       pytest
+Run just this file:  pytest tests\test_dashboard.py -v
+"""
 from app.dashboard.services import (
     get_summary,
     get_next_booking,

@@ -1,72 +1,65 @@
-"""
-REVIEWS (Matthew) — connected to the database.
-
-- The page shows APPROVED reviews (pulled from the review table).
-- A logged-in customer can leave a review for a service; it's saved with
-  status "Pending" so it can be approved later (admin step, future).
-- The listings "View Reviews" button links here with ?service=<name>.
-"""
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from ..extensions import db
 from ..models import Review, Service, Booking
 
-reviews_bp = Blueprint("reviews", __name__)
+def stars(rating):
+    try:
+        rating = int(rating)
+    except (TypeError, ValueError):
+        rating = 0
 
-<<<<<<< HEAD
+    rating = max(0, min(5, rating))
+    return "★" * rating + "☆" * (5 - rating)
+
+
+def reviewable_services_for(user):
+    if not user.is_authenticated:
+        return []
+
+    completed_bookings = Booking.query.filter_by(
+        user_id=user.id,
+        status="Completed"
+    ).all()
+
+    service_ids = {
+        booking.service_id
+        for booking in completed_bookings
+        if booking.service_id is not None
+    }
+
+    reviewed_service_ids = {
+        review.service_id
+        for review in Review.query.filter_by(user_id=user.id).all()
+        if review.service_id is not None
+    }
+
+    available_service_ids = service_ids - reviewed_service_ids
+
+    if not available_service_ids:
+        return []
+
+    return Service.query.filter(
+        Service.id.in_(available_service_ids)
+    ).all()
+
+
+reviews_bp = Blueprint(
+    "reviews",
+    __name__,
+    url_prefix="/reviews",
+    template_folder="templates"
+)
+
 review_list = [
     {"name": "John", "stars": 5, "text": "Excellent service!"},
     {"name": "Sarah", "stars": 4, "text": "Friendly and professional staff."},
     {"name": "Daniel", "stars": 5, "text": "Highly recommended!"}
 ]
-=======
-
-def stars(n):
-    n = int(n or 0)
-    return "★" * n + "☆" * (5 - n)
-
-
-def reviewable_services_for(user):
-    """Services this user is allowed to review right now: they have a
-    COMPLETED booking for it and haven't reviewed it yet. Returns a list
-    of Service objects. (This is the 'verified purchase' rule.)"""
-    if not user.is_authenticated:
-        return []
-    completed_ids = {
-        b.service_id for b in Booking.query.filter_by(
-            user_id=user.id, status="Completed").all()
-    }
-    already_reviewed = {
-        r.service_id for r in Review.query.filter_by(user_id=user.id).all()
-    }
-    allowed = completed_ids - already_reviewed
-    if not allowed:
-        return []
-    return (Service.query.filter(Service.id.in_(allowed))
-            .order_by(Service.name).all())
-
->>>>>>> 89cc33061444f52b7702ef941d09fd8038ff3f29
 
 
 @reviews_bp.route("/")
 def index():
-<<<<<<< HEAD
-    review_count = len(review_list)
-
-    if review_count > 0:
-        average_rating = sum(
-            review["stars"] for review in review_list
-        ) / review_count
-    else:
-        average_rating = 0
-
-    return render_template(
-        "reviews/index.html",
-        reviews=review_list,
-        average_rating=average_rating,
-        review_count=review_count
-    )
-=======
     query = Review.query.filter_by(status="Approved")
 
     # Optional filter: /reviews?service_id=1  (preferred) or ?service=Home Cleaning
@@ -103,28 +96,11 @@ def index():
                            reviews=reviews, avg=avg, count=len(reviews),
                            services=services, heading_service=heading_service,
                            my_pending=my_pending, stars=stars)
->>>>>>> 89cc33061444f52b7702ef941d09fd8038ff3f29
 
 
 @reviews_bp.route("/submit", methods=["POST"])
 @login_required
 def submit():
-<<<<<<< HEAD
-    rating = request.form.get("rating", type=int)
-    review_text = request.form.get("review", "").strip()
-
-    if rating is None or rating < 1 or rating > 5:
-        return redirect(url_for("reviews.index"))
-
-    if not review_text:
-        return redirect(url_for("reviews.index"))
-
-    review_list.insert(0, {
-        "name": "Anonymous",
-        "stars": rating,
-        "text": review_text
-    })
-=======
     service_id = request.form.get("service_id", type=int)
     rating = request.form.get("rating", type=int)
     title = (request.form.get("review_title") or "").strip()
@@ -134,7 +110,6 @@ def submit():
     if not service or not rating or rating < 1 or rating > 5 or not text:
         flash("Please choose a service, a star rating, and write a short review.", "error")
         return redirect(url_for("reviews.index"))
->>>>>>> 89cc33061444f52b7702ef941d09fd8038ff3f29
 
     # Verified-purchase rule: you can only review a service you've had
     # COMPLETED. (Blocks reviewing services you never actually used.)

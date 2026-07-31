@@ -1,42 +1,61 @@
-"""
-REVIEWS (Matthew) — connected to the database.
-
-- The page shows APPROVED reviews (pulled from the review table).
-- A logged-in customer can leave a review for a service; it's saved with
-  status "Pending" so it can be approved later (admin step, future).
-- The listings "View Reviews" button links here with ?service=<name>.
-"""
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from ..extensions import db
 from ..models import Review, Service, Booking
 
-reviews_bp = Blueprint("reviews", __name__, url_prefix="/reviews", template_folder="templates")
+def stars(rating):
+    try:
+        rating = int(rating)
+    except (TypeError, ValueError):
+        rating = 0
 
-
-def stars(n):
-    n = int(n or 0)
-    return "★" * n + "☆" * (5 - n)
+    rating = max(0, min(5, rating))
+    return "★" * rating + "☆" * (5 - rating)
 
 
 def reviewable_services_for(user):
-    """Services this user is allowed to review right now: they have a
-    COMPLETED booking for it and haven't reviewed it yet. Returns a list
-    of Service objects. (This is the 'verified purchase' rule.)"""
     if not user.is_authenticated:
         return []
-    completed_ids = {
-        b.service_id for b in Booking.query.filter_by(
-            user_id=user.id, status="Completed").all()
+
+    completed_bookings = Booking.query.filter_by(
+        user_id=user.id,
+        status="Completed"
+    ).all()
+
+    service_ids = {
+        booking.service_id
+        for booking in completed_bookings
+        if booking.service_id is not None
     }
-    already_reviewed = {
-        r.service_id for r in Review.query.filter_by(user_id=user.id).all()
+
+    reviewed_service_ids = {
+        review.service_id
+        for review in Review.query.filter_by(user_id=user.id).all()
+        if review.service_id is not None
     }
-    allowed = completed_ids - already_reviewed
-    if not allowed:
+
+    available_service_ids = service_ids - reviewed_service_ids
+
+    if not available_service_ids:
         return []
-    return (Service.query.filter(Service.id.in_(allowed))
-            .order_by(Service.name).all())
+
+    return Service.query.filter(
+        Service.id.in_(available_service_ids)
+    ).all()
+
+
+reviews_bp = Blueprint(
+    "reviews",
+    __name__,
+    url_prefix="/reviews",
+    template_folder="templates"
+)
+
+review_list = [
+    {"name": "John", "stars": 5, "text": "Excellent service!"},
+    {"name": "Sarah", "stars": 4, "text": "Friendly and professional staff."},
+    {"name": "Daniel", "stars": 5, "text": "Highly recommended!"}
+]
 
 
 @reviews_bp.route("/")

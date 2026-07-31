@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}New booking{% endblock %}
+{% block content %}
+<div class="container" style="padding-top:40px;padding-bottom:64px;max-width:640px">
+  <div style="margin-bottom:28px">
+    <span style="font-family:var(--font-head);font-weight:600;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--color-primary)">Booking &amp; scheduling</span>
+    <h1 style="margin-top:6px">Book a clean</h1>
+    <p style="color:var(--color-slate);margin:4px 0 0">Pick a service and a time — we'll confirm shortly.</p>
+  </div>
+  <form method="POST" action="{{ url_for('booking.add_booking') }}" class="card card-raised" style="padding:28px;display:flex;flex-direction:column;gap:18px">
+
+    <!-- Service -->
+    <div>
+      <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Service</label>
+      <select class="input" name="service_id" id="serviceSelect" required style="width:100%" onchange="serviceChanged()">
+        <option value="">Choose a service…</option>
+        {% for s in services %}
+        <option value="{{ s.id }}" {% if form and form.service_id == s.id %}selected{% endif %}>{{ s.name }} — from ${{ s.price }}</option>
+        {% endfor %}
+      </select>
+      <p id="durationHint" class="text-muted" style="font-size:.8125rem;margin:6px 0 0"></p>
+    </div>
+
+    <!-- Date + Time -->
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px">
+        <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Date</label>
+        <input class="input" type="date" name="date" value="{{ form.date if form else '' }}" min="{{ today }}" required style="width:100%">
+      </div>
+      <div style="flex:1;min-width:180px">
+        <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Time slot</label>
+        <select class="input" name="time" id="timeSelect" required style="width:100%">
+          {% if selected_slots %}
+            <option value="">Choose a time…</option>
+            {% for slot in selected_slots %}
+            <option value="{{ slot }}" {% if form and form.time == slot %}selected{% endif %}>{{ slot }}</option>
+            {% endfor %}
+          {% else %}
+            <option value="">Choose a service first…</option>
+          {% endif %}
+        </select>
+        <p class="text-muted" style="font-size:.8125rem;margin:6px 0 0">Slots are sized to fit the whole job.</p>
+      </div>
+    </div>
+
+    <!-- Address -->
+    <div>
+      <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Address</label>
+      <input class="input" type="text" name="address" value="{{ form.address if form else '' }}" placeholder="Where should we clean?" required style="width:100%">
+    </div>
+
+    <!-- Notes -->
+    <div>
+      <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Notes <span class="text-muted" style="font-weight:400">(optional)</span></label>
+      <textarea class="input" name="notes" rows="3" placeholder="Anything we should know? e.g. pets, eco products, gate code" style="width:100%;resize:vertical">{{ form.notes if form else '' }}</textarea>
+    </div>
+
+    <!-- Payment (demo) -->
+    <div style="border-top:1px solid var(--color-mist);padding-top:18px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+        <label style="font-family:var(--font-head);font-weight:600;font-size:.8125rem">Payment</label>
+        <span style="font-family:var(--font-head);font-weight:700;color:var(--color-primary)" id="amountDue">—</span>
+      </div>
+      <p class="text-muted" style="font-size:.8125rem;margin:0 0 12px">
+        Demo mode — no real money is taken and card details are never stored.
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer">
+          <input type="radio" name="payment_method" value="PayNow" onchange="paymentChanged()"
+                 {% if form and form.payment_method == 'PayNow' %}checked{% endif %} required>
+          <span><strong>PayNow</strong> <span class="text-muted" style="font-size:.8125rem">— instant transfer (demo)</span></span>
+        </label>
+        <label class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer">
+          <input type="radio" name="payment_method" value="Card" onchange="paymentChanged()"
+                 {% if form and form.payment_method == 'Card' %}checked{% endif %}>
+          <span><strong>Credit / debit card</strong> <span class="text-muted" style="font-size:.8125rem">— validated, never stored (demo)</span></span>
+        </label>
+        <label class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer">
+          <input type="radio" name="payment_method" value="Cash" onchange="paymentChanged()"
+                 {% if form and form.payment_method == 'Cash' %}checked{% endif %}>
+          <span><strong>Pay after the clean</strong> <span class="text-muted" style="font-size:.8125rem">— cash or PayNow on completion</span></span>
+        </label>
+      </div>
+
+      <!-- Card fields: only shown (and required) when Card is selected -->
+      <div id="cardFields" style="display:none;flex-direction:column;gap:12px;margin-top:14px">
+        <div>
+          <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Cardholder name</label>
+          <input class="input" type="text" name="card_name" id="cardName" autocomplete="off" placeholder="Name on card" style="width:100%">
+        </div>
+        <div>
+          <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Card number</label>
+          <input class="input" type="text" name="card_number" id="cardNumber" autocomplete="off" inputmode="numeric"
+                 placeholder="4242 4242 4242 4242" maxlength="23" style="width:100%">
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:120px">
+            <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">Expiry (MM/YY)</label>
+            <input class="input" type="text" name="card_expiry" id="cardExpiry" autocomplete="off" inputmode="numeric"
+                   placeholder="08/27" maxlength="5" style="width:100%">
+          </div>
+          <div style="flex:1;min-width:120px">
+            <label style="display:block;font-family:var(--font-head);font-weight:600;font-size:.8125rem;margin-bottom:6px">CVV</label>
+            <input class="input" type="password" name="card_cvv" id="cardCvv" autocomplete="off" inputmode="numeric"
+                   placeholder="123" maxlength="4" style="width:100%">
+          </div>
+        </div>
+        <p class="text-muted" style="font-size:.75rem;margin:0">Tip for demos: 4242 4242 4242 4242 with any future expiry passes validation.</p>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:6px">
+      <a href="{{ url_for('listings.index') }}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary" style="flex:1">Request booking</button>
+    </div>
+  </form>
+</div>
+
+<!-- Per-service info (price, duration, valid slots) from the database -->
+<script id="services-meta" type="application/json">{{ services_meta | tojson }}</script>
+<script>
+const META = JSON.parse(document.getElementById('services-meta').textContent);
+const serviceSelect = document.getElementById('serviceSelect');
+const timeSelect = document.getElementById('timeSelect');
+const durationHint = document.getElementById('durationHint');
+const amountDue = document.getElementById('amountDue');
+const cardFields = document.getElementById('cardFields');
+const cardInputs = ['cardName', 'cardNumber', 'cardExpiry', 'cardCvv'].map(id => document.getElementById(id));
+const dateInput = document.querySelector('input[name="date"]');
+const todayStr = "{{ today }}";  // YYYY-MM-DD, from the server
+
+// Has this slot ("09:00–12:00") already started, if the booking is for today?
+function slotPassed(slot) {
+  if (!dateInput || dateInput.value !== todayStr) return false;  // only matters today
+  const start = slot.split('–')[0];               // "09:00"
+  const parts = start.split(':');
+  const now = new Date();
+  const slotMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  return slotMinutes <= nowMinutes;
+}
+
+// Rebuild the time-slot dropdown to match the selected service's duration,
+// and drop any slots that have already started (only when today is picked).
+function serviceChanged(keepTime) {
+  const meta = META[serviceSelect.value];
+  const previous = keepTime ? timeSelect.value : '';
+  timeSelect.innerHTML = '';
+
+  if (!meta) {
+    timeSelect.add(new Option('Choose a service first…', ''));
+    durationHint.textContent = '';
+    amountDue.textContent = '—';
+    return;
+  }
+
+  const available = meta.slots.filter(slot => !slotPassed(slot));
+  timeSelect.add(new Option('Choose a time…', ''));
+  available.forEach(slot => {
+    const opt = new Option(slot, slot);
+    if (slot === previous) opt.selected = true;
+    timeSelect.add(opt);
+  });
+  if (available.length === 0) {
+    durationHint.textContent = 'No slots left for today — please pick another date.';
+  } else {
+    durationHint.textContent = meta.name + ' takes ' + meta.duration.toLowerCase() +
+                               ' — each slot below covers the full job.';
+  }
+  amountDue.textContent = '$' + meta.price;
+}
+
+// Changing the date can change which slots are still available (e.g. today).
+if (dateInput) dateInput.addEventListener('change', () => serviceChanged(true));
+
+// Show card fields only when Card is chosen; toggle required to match.
+function paymentChanged() {
+  const method = document.querySelector('input[name="payment_method"]:checked');
+  const isCard = method && method.value === 'Card';
+  cardFields.style.display = isCard ? 'flex' : 'none';
+  cardInputs.forEach(el => {
+    el.required = isCard;
+    if (!isCard) el.value = '';
+  });
+}
+
+// Initial state: respect a pre-selected service ("Book Now") or a form
+// that came back with a validation error.
+serviceChanged(true);
+{% if form and form.time %}timeSelect.value = "{{ form.time }}";{% endif %}
+paymentChanged();
+</script>
+{% endblock %}

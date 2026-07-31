@@ -1,0 +1,67 @@
+# Sparkle — local multi-container setup (owner: Ashish)
+#
+# Run with:  docker compose up --build
+#
+# WHY env_file INSTEAD OF LISTING VARIABLES:
+# The previous version mapped variables one by one, e.g.
+#     environment:
+#       - SECRET_KEY=${SECRET_KEY}
+# Docker Compose substitutes an UNSET variable with an EMPTY STRING, so if
+# your shell had no SECRET_KEY the container started with SECRET_KEY="".
+# Flask treats an empty secret key as "not set" and throws
+# "The session is unavailable because no secret key was set" the moment
+# anyone logs in — a confusing runtime crash rather than a clear startup
+# error. Passing the .env file straight through avoids that entirely:
+# a variable is either present with its real value, or genuinely absent
+# (so Config's own default applies).
+
+services:
+  web:
+    build: .
+    image: sparkle-app:latest        # keep in sync with the CI/registry tag
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env                          # DATABASE_URL, SECRET_KEY, MYSQL_SSL_CA
+    environment:
+      # Only defaults that are safe to hardcode live here.
+      - MYSQL_SSL_CA=${MYSQL_SSL_CA:-/app/certs/aiven-ca.pem}
+    volumes:
+      # The Aiven CA cert is mounted read-only at runtime instead of being
+      # copied into the image, so the certificate never ends up in a layer
+      # that gets pushed to a registry.
+      - ./certs:/app/certs:ro
+    restart: unless-stopped
+    healthcheck:
+      # NOTE (Hao Jun): swap "/" for "/health" once your endpoint is merged —
+      # that gives a real app+DB readiness check rather than just "a page
+      # rendered". Compose/ECS/Docker use this to know if the app is alive.
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/').status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+# ---------------------------------------------------------------------------
+# OPTIONAL (nice depth for the FA): a fully self-contained stack that needs
+# no Aiven and no network — `docker compose --profile local up` gives you
+# app + database together, which is the classic multi-container demo.
+# To use it, set DATABASE_URL=mysql+pymysql://sparkle:sparkle@db:3306/sparkle
+#
+#  db:
+#    image: mysql:8
+#    profiles: ["local"]
+#    environment:
+#      MYSQL_DATABASE: sparkle
+#      MYSQL_USER: sparkle
+#      MYSQL_PASSWORD: sparkle
+#      MYSQL_ROOT_PASSWORD: rootpw
+#    volumes:
+#      - dbdata:/var/lib/mysql
+#    healthcheck:
+#      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+#      interval: 10s
+#      retries: 5
+#
+# volumes:
+#   dbdata:

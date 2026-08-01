@@ -53,6 +53,11 @@
           - curl
           - git
           - unzip
+          # Required by the deb822_repository task below — the module runs ON
+          # THE TARGET and needs the python3-debian library there. Present on
+          # some Ubuntu images but not all; installing it explicitly means the
+          # playbook doesn't depend on which image the VM was built from.
+          - python3-debian
         state: present
 
     # -----------------------------------------------------------------

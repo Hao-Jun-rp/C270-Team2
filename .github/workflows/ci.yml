@@ -17,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install dependencies
@@ -36,11 +36,10 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push Docker image
-        if: github.event_name == 'push'
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
+          push: ${{ github.event_name == 'push' }}
           tags: |
             c270sparkleteam2/sparkle:latest
             c270sparkleteam2/sparkle:${{ github.sha }}

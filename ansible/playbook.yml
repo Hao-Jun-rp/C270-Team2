@@ -1,0 +1,86 @@
+---
+- name: Deploy Sparkle Application
+  hosts: localhost
+  connection: local
+  become: yes
+
+  vars_files:
+   - vault.yml
+
+  tasks:
+    - name: Update apt package list
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Check Docker installation
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Show Docker version
+      ansible.builtin.debug:
+        var: docker_version.stdout
+
+    - name: Install AWS SSM Agent
+      ansible.builtin.command: snap install amazon-ssm-agent --classic
+      register: ssm_install
+      changed_when: "'installed' in ssm_install.stdout or 'installed' in ssm_install.stderr"
+      failed_when: false
+
+    - name: Enable AWS SSM Agent
+      ansible.builtin.systemd:
+        name: snap.amazon-ssm-agent.amazon-ssm-agent.service
+        enabled: yes
+        state: started
+
+    - name: Install Git
+      ansible.builtin.apt:
+        name: git
+        state: present
+
+    - name: Check Docker Compose installation
+      ansible.builtin.command: docker compose version
+      register: docker_compose_version
+      changed_when: false
+
+    - name: Show Docker Compose version
+      ansible.builtin.debug:
+        var: docker_compose_version.stdout
+
+
+    - name: Clone or update Sparkle repository
+      ansible.builtin.git:
+        repo: "https://github.com/Hao-Jun-rp/C270-Team2.git"
+        dest: /opt/C270-Team2
+        version: main
+        update: yes
+        force: yes
+
+    - name: Create .env file
+      ansible.builtin.template:
+        src: app.env.j2
+        dest: /opt/C270-Team2/.env
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Start Sparkle application with Docker Compose
+      ansible.builtin.command:
+        cmd: docker compose up -d --build
+        chdir: /opt/C270-Team2
+      register: compose_result
+      changed_when: >
+        'Started' in compose_result.stdout or
+        'Created' in compose_result.stdout or
+        'Recreated' in compose_result.stdout or
+        'Built' in compose_result.stdout
+
+    - name: Show running Docker containers
+      ansible.builtin.command: docker ps
+      register: docker_ps
+      changed_when: false
+
+    - name: Display running containers
+      ansible.builtin.debug:
+        var: docker_ps.stdout_lines

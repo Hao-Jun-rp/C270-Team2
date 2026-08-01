@@ -1,7 +1,6 @@
 ---
 - name: Deploy Sparkle Application
-  hosts: localhost
-  connection: local
+  hosts: sparkle_server
   become: yes
 
   vars_files:

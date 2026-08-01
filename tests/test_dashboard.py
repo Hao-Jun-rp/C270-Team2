@@ -88,3 +88,34 @@ def test_get_dashboard_data_contains_expected_keys(monkeypatch):
     assert expected_keys.issubset(dashboard.keys())
 # What this test:
 # The main dashboard service returns all the data the templates expect.
+
+# Test 4 (added by Marcus while fixing the calendar's missing
+# Cancelled colour — see dashboard.js)
+def test_calendar_data_preserves_cancelled_status(monkeypatch):
+    """The calendar must pass a booking's status through untouched,
+    including Cancelled — the frontend colours events by this value,
+    so if the status were dropped or renamed, cancelled bookings
+    would silently render with the default (Confirmed-looking) colour."""
+    sample_bookings = [
+        {
+            "status": "Cancelled",
+            "service": "Home Cleaning",
+            "date": "13 Jul 2026",
+            "time": "10:00 AM",
+            "cleaner": "Alice",
+            "address": "123 Street",
+            "notes": "",
+            "price": 100,
+            "duration": "2 hours",
+        }
+    ]
+    monkeypatch.setattr(
+        "app.dashboard.services.get_bookings",
+        lambda: sample_bookings,
+    )
+
+    from app.dashboard.services import get_calendar_data
+    events = get_calendar_data()
+
+    assert len(events) == 1
+    assert events[0]["extendedProps"]["status"] == "Cancelled"

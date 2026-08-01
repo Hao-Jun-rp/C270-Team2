@@ -49,6 +49,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 event.borderColor = "#22C55E";
                 break;
 
+            case "Cancelled":
+                event.backgroundColor = "#9CA3AF";
+                event.borderColor = "#9CA3AF";
+                break;
+
+            // Any unknown status gets grey rather than FullCalendar's
+            // default blue, which reads as "Confirmed" at a glance.
+            default:
+                event.backgroundColor = "#9CA3AF";
+                event.borderColor = "#9CA3AF";
+
         }
 
     });

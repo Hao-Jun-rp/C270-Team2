@@ -33,10 +33,10 @@ services:
       - ./certs:/app/certs:ro
     restart: unless-stopped
     healthcheck:
-      # NOTE (Hao Jun): swap "/" for "/health" once your endpoint is merged —
-      # that gives a real app+DB readiness check rather than just "a page
-      # rendered". Compose/ECS/Docker use this to know if the app is alive.
-      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/').status==200 else 1)\""]
+      # /health (Hao Jun's endpoint, merged in PR #69) does a real SELECT 1
+      # against the database, so this now proves app + DB readiness rather
+      # than just "a page rendered".
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\""]
       interval: 30s
       timeout: 5s
       retries: 3

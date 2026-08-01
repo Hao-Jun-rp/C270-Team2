@@ -57,6 +57,25 @@ credentials.** Generate a key with:
 python3 -c 'import secrets; print(secrets.token_hex(32))'
 ```
 
+For `website_database_url`, the correct throwaway value is:
+
+```
+sqlite:///sparkle.db
+```
+
+That makes the app fall back to a SQLite file **inside the container** —
+no external database needed, and `/health` and `/listings` still prove
+the whole chain. Do **not** invent a fake `mysql+pymysql://...` URL: the
+app connects to the database at startup, so a fake MySQL URL crashes
+gunicorn on boot and the playbook's health check fails with a confusing
+timeout.
+
+Note on logging in to the VM app: the `.env` template sets
+`SESSION_COOKIE_SECURE=1` **only when** `certbot_domain` is set (i.e.
+real HTTPS exists). On a plain-HTTP VM it stays `0`, otherwise the
+browser would refuse to keep the session cookie and login would appear
+broken.
+
 ## Why this targets a local VM, not production
 
 1. A playbook only proves something if it runs on a **blank** machine.

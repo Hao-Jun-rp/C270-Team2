@@ -1,4 +1,9 @@
 SECRET_KEY={{ website_secret_key }}
 DATABASE_URL={{ website_database_url }}
 MYSQL_SSL_CA=/app/certs/aiven-ca.pem
-SESSION_COOKIE_SECURE=1
+{# Secure=1 tells the browser to send the session cookie over HTTPS ONLY.
+   A local VM serves plain HTTP (no domain -> no Let's Encrypt), so with
+   Secure=1 the browser silently drops the cookie and LOGIN APPEARS BROKEN
+   even though the app is fine. Only harden the cookie when the play was
+   actually given a real domain (i.e. HTTPS exists). #}
+SESSION_COOKIE_SECURE={{ '1' if certbot_domain is defined else '0' }}

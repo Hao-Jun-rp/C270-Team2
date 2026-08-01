@@ -29,6 +29,7 @@ def create_app(config_class=Config):
     from .reviews.routes import reviews_bp
     from .notifications.routes import notifications_bp
     from .admin.routes import admin_bp
+    from .monitoring.routes import monitoring_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -38,6 +39,7 @@ def create_app(config_class=Config):
     app.register_blueprint(reviews_bp)
     app.register_blueprint(notifications_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(monitoring_bp)
 
     # Create the database file + tables the first time we run.
     with app.app_context():

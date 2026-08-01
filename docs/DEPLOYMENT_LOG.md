@@ -757,6 +757,137 @@ on the instance.
 
 ---
 
+## Phase 9 — Automated deployment via GitHub OIDC + SSM (1 Aug 2026)
+
+The pipeline previously stopped at pushing an image; deploying was manual. It
+now runs end to end. **This completes `build -> test -> deploy`.**
+
+```
+commit to main
+   -> GitHub Actions: pytest -> build image -> push to Docker Hub
+   -> GitHub requests an OIDC token
+   -> AWS STS returns temporary credentials (no stored keys)
+   -> ssm:SendCommand -> SSM Agent on the instance
+   -> deploy.sh: fetch secrets from Parameter Store -> pull -> restart -> health check
+   -> live site updated
+```
+
+**There are no long-lived credentials anywhere in this chain** — not on the
+server, not in GitHub.
+
+### Why not SSH from GitHub Actions?
+
+The common approach is an SSH private key in GitHub secrets. Rejected because:
+
+1. GitHub's runners would need inbound access to port 22, meaning opening it to
+   GitHub's IP ranges (broad, and they change) or to the world — **undoing the
+   security-group hardening in Phase 1**.
+2. A production SSH key would have to be stored in GitHub, where anyone with
+   repo admin could potentially extract it.
+
+With SSM the agent polls **outbound**. No inbound port opens at all, and port 22
+stays restricted to a single IP.
+
+### 1. OIDC identity provider
+
+IAM -> Identity providers -> OpenID Connect:
+
+- Provider URL: `https://token.actions.githubusercontent.com`
+- Audience: `sts.amazonaws.com`
+
+**No thumbprint was required.** AWS now secures OIDC providers by trusting the
+root CA anchoring the provider's TLS certificate rather than a pinned
+thumbprint, and retrieves it automatically. Many guides still instruct pasting a
+thumbprint value; that is out of date.
+
+### 2. Permission policy — `SparkleGitHubDeploy`
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SendCommandToSparkleInstance",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": [
+        "arn:aws:ec2:ap-southeast-1:891858635640:instance/i-01cfeb68e8fa7700f",
+        "arn:aws:ssm:ap-southeast-1::document/AWS-RunShellScript"
+      ]
+    },
+    {
+      "Sid": "ReadCommandResult",
+      "Effect": "Allow",
+      "Action": ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations"],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+GitHub can send **one document** to **one instance** and read the result. It
+cannot start or stop instances, cannot read Parameter Store secrets, cannot
+touch anything else in the account.
+
+### 3. Role — `SparkleGitHubActionsRole`
+
+Trust policy scoped to a single repository **and branch**:
+
+```json
+"Condition": {
+  "StringEquals": {
+    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+    "token.actions.githubusercontent.com:sub": "repo:Hao-Jun-rp/C270-Team2:ref:refs/heads/main"
+  }
+}
+```
+
+**The `sub` condition is the most important line in the entire setup.** Without
+it — or with a wildcard — any GitHub Actions workflow, in any repository
+anywhere, could assume this role. Scoping it to `refs/heads/main` also means
+pull requests and forks cannot deploy.
+
+### 4. Workflow side (Tristan)
+
+Requires `id-token: write` permission so the runner may request an OIDC token,
+then `aws-actions/configure-aws-credentials` to exchange it, then
+`aws ssm send-command`.
+
+Importantly, the workflow **polls for completion** rather than firing and
+forgetting: `send-command` returns as soon as AWS *accepts* the command, so
+without polling a failed deployment would still show as a green pipeline — a
+passing build sitting on top of a dead site. The workflow now waits, prints the
+script's output into the Actions log, and fails the job if the final status is
+not `Success`.
+
+### Verified end to end (1 Aug 2026, 07:05:44 GMT)
+
+Tristan pushed a test commit. On the server, with no action from me:
+
+| Evidence | Value |
+|---|---|
+| Container created | ~1 minute after his push |
+| Image ID | `a6c3036a6571` (new — previous was `08025b5c`) |
+| SSM command history | Entry at 07:05:44 GMT that I did not create |
+| Command output | ends `==> Deploy OK: c270sparkleteam2/sparkle:latest` |
+| Container ID in that output | `88c4946ab157...` — matches `docker ps` |
+| Duration | 16 seconds |
+| Site | HTTP 200 |
+
+**Why the command history is the decisive evidence:** running `deploy.sh`
+directly over SSH does *not* appear in SSM command history — AWS isn't involved.
+Only commands sent through `ssm:SendCommand` are logged. My own manual runs are
+timestamped the previous day (31 Jul, 16:22 and 16:26); the 1 Aug entry can only
+have come from the pipeline.
+
+### Consequence for how deployment now works
+
+Manual `deploy.sh` is now a **fallback for when the pipeline is broken**, not
+the normal path. Keeping all deployments flowing through SSM means the command
+history is a complete audit record of every production change.
+
+---
+
 ## Phase 7 — Security headers + cookie hardening — DONE (31 Jul 2026)
 
 Part of my **Technical Initiative & Depth** item. Two layers: HTTP response

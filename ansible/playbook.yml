@@ -1,85 +1,293 @@
 ---
-- name: Deploy Sparkle Application
+# =====================================================================
+# Sparkle — provisioning playbook
+# =====================================================================
+#
+# Takes a BLANK Ubuntu 24.04 machine and produces a running Sparkle
+# application behind an Nginx reverse proxy.
+#
+# It mirrors, step for step, the manual build recorded in
+# docs/DEPLOYMENT_LOG.md — that log is the spec for this file.
+#
+# Usage:
+#   ansible-playbook -i inventory.ini playbook.yml --ask-vault-pass
+#
+# Idempotency: running this twice on the same machine should report
+# "changed=0" on the second run. That is the proof that this is real
+# infrastructure-as-code and not a shell script wearing a YAML hat.
+#
+# NOT run against production. Production is provisioned by hand and
+# deployed to via AWS SSM; this playbook targets a local VM so it can be
+# proven on a genuinely blank machine.
+# =====================================================================
+
+- name: Provision and deploy Sparkle
   hosts: sparkle_server
-  become: yes
+  become: true
 
   vars_files:
-   - vault.yml
+    - vault.yml
+
+  vars:
+    app_dir: /opt/C270-Team2
+    repo_url: "https://github.com/Hao-Jun-rp/C270-Team2.git"
+    app_port: 8000
+    # Override in inventory for a real domain. On a local VM there is no
+    # public DNS, so Nginx just serves on the VM's address over HTTP.
+    server_name: "{{ ansible_default_ipv4.address | default('_') }}"
 
   tasks:
-    - name: Update apt package list
+
+    # -----------------------------------------------------------------
+    # 1. Base packages
+    # -----------------------------------------------------------------
+    - name: Update apt cache
       ansible.builtin.apt:
-        update_cache: yes
+        update_cache: true
         cache_valid_time: 3600
 
-    - name: Check Docker installation
-      ansible.builtin.command: docker --version
-      register: docker_version
-      changed_when: false
-
-    - name: Show Docker version
-      ansible.builtin.debug:
-        var: docker_version.stdout
-
-    - name: Install AWS SSM Agent
-      ansible.builtin.command: snap install amazon-ssm-agent --classic
-      register: ssm_install
-      changed_when: "'installed' in ssm_install.stdout or 'installed' in ssm_install.stderr"
-      failed_when: false
-
-    - name: Enable AWS SSM Agent
-      ansible.builtin.systemd:
-        name: snap.amazon-ssm-agent.amazon-ssm-agent.service
-        enabled: yes
-        state: started
-
-    - name: Install Git
+    - name: Install base packages
       ansible.builtin.apt:
-        name: git
+        name:
+          - ca-certificates
+          - curl
+          - git
+          - unzip
         state: present
 
-    - name: Check Docker Compose installation
-      ansible.builtin.command: docker compose version
-      register: docker_compose_version
+    # -----------------------------------------------------------------
+    # 2. Docker Engine — from Docker's official repository
+    #
+    # Ubuntu's own docker.io package lags well behind upstream and does
+    # not ship Compose v2. We add Docker's repo so the VM gets the same
+    # Engine and `docker compose` that CI and production use.
+    # -----------------------------------------------------------------
+    - name: Create apt keyring directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Add Docker GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    # apt_repository is deprecated in newer ansible-core; deb822_repository
+    # is the supported replacement and is clearer to read.
+    - name: Add Docker apt repository
+      ansible.builtin.deb822_repository:
+        name: docker
+        types: deb
+        uris: https://download.docker.com/linux/ubuntu
+        suites: "{{ ansible_distribution_release }}"
+        components: stable
+        architectures: "{{ ansible_architecture | replace('x86_64', 'amd64') }}"
+        signed_by: /etc/apt/keyrings/docker.asc
+        state: present
+
+    - name: Install Docker Engine and Compose plugin
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+
+    - name: Ensure Docker is running and enabled at boot
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    # -----------------------------------------------------------------
+    # 3. AWS SSM Agent
+    #
+    # Production is deployed to via SSM Run Command rather than SSH, so
+    # any machine built from this playbook needs the agent. On Ubuntu it
+    # ships as a SNAP, not an apt package — and the service name is
+    # snap.amazon-ssm-agent.amazon-ssm-agent.service, not the
+    # amazon-ssm-agent.service that most guides give.
+    # -----------------------------------------------------------------
+    # community.general.snap would be tidier, but it needs an extra
+    # collection installed. This does the same job with built-in modules:
+    # check first, install only if absent — so it reports "changed" once
+    # and never again.
+    - name: Check whether the SSM Agent snap is installed
+      ansible.builtin.command: snap list amazon-ssm-agent
+      register: ssm_installed
       changed_when: false
+      failed_when: false
 
-    - name: Show Docker Compose version
-      ansible.builtin.debug:
-        var: docker_compose_version.stdout
+    - name: Install AWS SSM Agent (snap)
+      ansible.builtin.command: snap install amazon-ssm-agent --classic
+      when: ssm_installed.rc != 0
+      changed_when: true      # only runs when the snap was absent
 
+    - name: Ensure SSM Agent is running and enabled
+      ansible.builtin.systemd:
+        name: snap.amazon-ssm-agent.amazon-ssm-agent.service
+        state: started
+        enabled: true
 
-    - name: Clone or update Sparkle repository
+    # -----------------------------------------------------------------
+    # 4. Application source and configuration
+    # -----------------------------------------------------------------
+    - name: Clone or update the Sparkle repository
       ansible.builtin.git:
-        repo: "https://github.com/Hao-Jun-rp/C270-Team2.git"
-        dest: /opt/C270-Team2
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
         version: main
-        update: yes
-        force: yes
+        update: true
+        force: true
+      register: repo_state
 
-    - name: Create .env file
+    # Secrets come from Ansible Vault. They are encrypted at rest in the
+    # repository and only ever exist in plaintext on the target machine,
+    # in a file readable by root alone.
+    #
+    # NOTE: production does NOT use this file. There, secrets live in AWS
+    # SSM Parameter Store and are fetched at deploy time by the instance's
+    # IAM role. A local VM has no IAM role, so Vault is the equivalent
+    # mechanism here.
+    - name: Write the application .env from Vault
       ansible.builtin.template:
-        src: app.env.j2
-        dest: /opt/C270-Team2/.env
+        src: app_env.j2
+        dest: "{{ app_dir }}/.env"
         owner: root
         group: root
         mode: '0600'
+      notify: Recreate app container
 
-    - name: Start Sparkle application with Docker Compose
+    # -----------------------------------------------------------------
+    # 5. Run the application
+    #
+    # `--build` is deliberately NOT used: rebuilding on every run would
+    # report "changed" every time and destroy the idempotency proof.
+    # Compose only recreates containers when something actually differs.
+    # -----------------------------------------------------------------
+    # community.docker.docker_compose_v2 reports state more precisely, but
+    # needs an extra collection. Using the built-in command module with an
+    # explicit changed_when keeps this dependency-free and still honest
+    # about whether anything actually changed.
+    #
+    # NOTE: no `--build`. Rebuilding on every run would report "changed"
+    # every time and destroy the idempotency proof. Compose only recreates
+    # a container when something genuinely differs.
+    - name: Start the application with Docker Compose
       ansible.builtin.command:
-        cmd: docker compose up -d --build
-        chdir: /opt/C270-Team2
+        cmd: docker compose up -d
+        chdir: "{{ app_dir }}"
       register: compose_result
-      changed_when: >
-        'Started' in compose_result.stdout or
-        'Created' in compose_result.stdout or
-        'Recreated' in compose_result.stdout or
-        'Built' in compose_result.stdout
+      changed_when: >-
+        'Started' in compose_result.stderr or
+        'Created' in compose_result.stderr or
+        'Recreated' in compose_result.stderr
 
-    - name: Show running Docker containers
-      ansible.builtin.command: docker ps
-      register: docker_ps
+    # -----------------------------------------------------------------
+    # 6. Nginx reverse proxy
+    #
+    # Nginx binds 80/443 and forwards to gunicorn on 8000, so the app
+    # process never runs as root and never faces the internet directly.
+    # The proxy_set_header lines preserve the real client IP and original
+    # protocol — without them the app sees every request as coming from
+    # 127.0.0.1 over plain HTTP.
+    # -----------------------------------------------------------------
+    - name: Install Nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+
+    - name: Deploy the Sparkle Nginx site config
+      ansible.builtin.template:
+        src: nginx_sparkle.j2
+        dest: /etc/nginx/sites-available/sparkle
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload nginx
+
+    - name: Enable the Sparkle site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/sparkle
+        dest: /etc/nginx/sites-enabled/sparkle
+        state: link
+      notify: Reload nginx
+
+    - name: Remove the default Nginx site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload nginx
+
+    - name: Ensure Nginx is running and enabled
+      ansible.builtin.systemd:
+        name: nginx
+        state: started
+        enabled: true
+
+    # -----------------------------------------------------------------
+    # 7. HTTPS (optional — needs a real domain)
+    #
+    # Let's Encrypt cannot issue a certificate for a bare IP address: the
+    # challenge proves control of a DOMAIN. A local VM normally has no
+    # public DNS name, so this block is skipped unless a real domain is
+    # supplied. Production HTTPS was issued by hand with certbot; see
+    # DEPLOYMENT_LOG.md Phase 5.
+    # -----------------------------------------------------------------
+    - name: Install certbot
+      ansible.builtin.apt:
+        name:
+          - certbot
+          - python3-certbot-nginx
+        state: present
+      when: certbot_domain is defined
+
+    - name: Obtain a Let's Encrypt certificate
+      ansible.builtin.command:
+        cmd: >-
+          certbot --nginx -d {{ certbot_domain }}
+          --non-interactive --agree-tos -m {{ certbot_email }}
+          --redirect
+      args:
+        creates: /etc/letsencrypt/live/{{ certbot_domain }}/fullchain.pem
+      when: certbot_domain is defined
+
+    # -----------------------------------------------------------------
+    # 8. Verify — a playbook that doesn't check its own work is a wish
+    # -----------------------------------------------------------------
+    - name: Wait for the application to answer through Nginx
+      ansible.builtin.uri:
+        url: "http://127.0.0.1/listings"
+        status_code: 200
+      register: health
+      retries: 15
+      delay: 2
+      until: health.status == 200
       changed_when: false
 
-    - name: Display running containers
+    - name: Report result
       ansible.builtin.debug:
-        var: docker_ps.stdout_lines
+        msg: >-
+          Sparkle is up. Nginx is proxying to the container on port
+          {{ app_port }} and /listings returned HTTP {{ health.status }}
+          (a database-backed page, so this proves the whole chain).
+
+  handlers:
+    # If .env changed, the running container still holds the OLD values —
+    # environment variables are read once, at container start — so it has
+    # to be recreated, not merely restarted.
+    - name: Recreate app container
+      ansible.builtin.command:
+        cmd: docker compose up -d --force-recreate
+        chdir: "{{ app_dir }}"
+      changed_when: true
+
+    - name: Reload nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded

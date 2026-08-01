@@ -13,7 +13,7 @@ Run just this file:  pytest tests/test_admin.py -v
 from datetime import date, timedelta
 
 from app.extensions import db
-from app.models import User, Service, Booking, Review
+from app.models import User, Service, Booking, Review, Notification
 
 
 # ---------------------------------------------------------------
@@ -240,3 +240,55 @@ def test_approving_a_review_updates_the_service_rating(app, client):
     with app.app_context():
         assert db.session.get(Review, review_id).status == "Approved"
         assert db.session.get(Service, service_id).rating == 4.0
+
+
+# ===============================================================
+# 5. Completion notification adapts to whether they've reviewed
+# ===============================================================
+def test_completion_invites_a_review_when_they_havent_reviewed(app, client):
+    """First completed booking for a service: prompt them to review."""
+    with app.app_context():
+        make_user("marcus@sparkle.sg", role="admin")
+        customer = make_user("customer@example.com")
+        service = make_service()
+        booking = make_booking(customer, service, status="Confirmed",
+                               payment_method="Cash", payment_status="Unpaid")
+        booking_id, customer_id = booking.id, customer.id
+    login(client, "marcus@sparkle.sg")
+
+    client.post(f"/admin/bookings/{booking_id}/status",
+                data={"status": "Completed"}, follow_redirects=True)
+
+    with app.app_context():
+        note = (Notification.query.filter_by(user_id=customer_id)
+                .order_by(Notification.id.desc()).first())
+        assert note is not None
+        assert "leave a review" in note.message
+
+
+def test_completion_does_not_reinvite_a_review_already_left(app, client):
+    """Reviews are one-per-service. A repeat customer who already reviewed
+    this service must NOT be prompted to review it again — the link would
+    lead to a page with no review form (a dead end)."""
+    with app.app_context():
+        make_user("marcus@sparkle.sg", role="admin")
+        customer = make_user("customer@example.com")
+        service = make_service()
+        db.session.add(Review(user_id=customer.id, service_id=service.id,
+                              rating=5, review_description="Great first clean.",
+                              status="Approved"))
+        booking = make_booking(customer, service, status="Confirmed",
+                               payment_method="Cash", payment_status="Unpaid")
+        db.session.commit()
+        booking_id, customer_id = booking.id, customer.id
+    login(client, "marcus@sparkle.sg")
+
+    client.post(f"/admin/bookings/{booking_id}/status",
+                data={"status": "Completed"}, follow_redirects=True)
+
+    with app.app_context():
+        note = (Notification.query.filter_by(user_id=customer_id)
+                .order_by(Notification.id.desc()).first())
+        assert note is not None
+        assert "leave a review" not in note.message
+        assert "complete" in note.message.lower()

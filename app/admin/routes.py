@@ -157,10 +157,19 @@ def update_booking_status(booking_id):
             f"{booking.date} at {booking.time} is confirmed.",
             link=link)
     elif new_status == "Completed":
+        # Only invite a review if they haven't already reviewed this service.
+        # Reviews are one-per-service, so prompting a repeat customer would
+        # send them to a page where the form isn't there — a dead end.
+        already_reviewed = Review.query.filter_by(
+            user_id=booking.user_id, service_id=booking.service_id).first()
+        if already_reviewed:
+            message = (f"Your {booking.service.name} is complete — "
+                       f"thanks for booking with us again!")
+        else:
+            message = (f"Your {booking.service.name} is complete — "
+                       f"leave a review to help others!")
         create_notification(
-            booking.user_id,
-            f"Your {booking.service.name} is complete — "
-            f"leave a review to help others!",
+            booking.user_id, message,
             link=url_for("reviews.index", service=booking.service.name))
     elif new_status == "Cancelled":
         create_notification(

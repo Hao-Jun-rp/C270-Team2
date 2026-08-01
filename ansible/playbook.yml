@@ -22,7 +22,8 @@
 # =====================================================================
 
 - name: Provision and deploy Sparkle
-  hosts: sparkle_server
+  hosts: localhost
+  connection: local
   become: true
 
   vars_files:
@@ -146,7 +147,7 @@
       ansible.builtin.git:
         repo: "{{ repo_url }}"
         dest: "{{ app_dir }}"
-        version: main
+        version: feature/ansible
         update: true
         force: true
       register: repo_state
@@ -184,14 +185,9 @@
     # every time and destroy the idempotency proof. Compose only recreates
     # a container when something genuinely differs.
     - name: Start the application with Docker Compose
-      ansible.builtin.command:
-        cmd: docker compose up -d
-        chdir: "{{ app_dir }}"
-      register: compose_result
-      changed_when: >-
-        'Started' in compose_result.stderr or
-        'Created' in compose_result.stderr or
-        'Recreated' in compose_result.stderr
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        state: present
 
     # -----------------------------------------------------------------
     # 6. Nginx reverse proxy
@@ -267,7 +263,7 @@
     # -----------------------------------------------------------------
     - name: Wait for the application to answer through Nginx
       ansible.builtin.uri:
-        url: "http://127.0.0.1/listings"
+        url: "http://127.0.0.1/"
         status_code: 200
       register: health
       retries: 15

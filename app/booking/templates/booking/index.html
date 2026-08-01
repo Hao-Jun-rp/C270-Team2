@@ -124,6 +124,9 @@
       </div>
     </div>
     <a id="dReview" href="#" style="display:none;width:100%;margin-top:24px;text-align:center;text-decoration:none" class="btn btn-primary">Write a review</a>
+    <p id="dReviewed" class="text-muted" style="display:none;margin-top:24px;text-align:center;font-size:.8125rem">
+      You've already reviewed this service — one review per service.
+    </p>
     <button onclick="closeDetail()" class="btn btn-ghost" style="width:100%;margin-top:12px">Close</button>
   </div>
 </div>
@@ -165,12 +168,20 @@ function openDetail(id, service, date, time, address, notes, status, alreadyRevi
   // Show "Write a review" only for completed bookings for a service the
   // user hasn't already reviewed.
   const review = document.getElementById('dReview');
+  const reviewed = document.getElementById('dReviewed');
   if (status === 'Completed' && !alreadyReviewed) {
     const base = "{{ url_for('reviews.index') }}";
     review.href = base + '?service=' + encodeURIComponent(service) + '#leave-review';
     review.style.display = 'block';
+    reviewed.style.display = 'none';
+  } else if (status === 'Completed') {
+    // Completed but already reviewed — say so, rather than silently
+    // hiding the button and leaving the user wondering why.
+    review.style.display = 'none';
+    reviewed.style.display = 'block';
   } else {
     review.style.display = 'none';
+    reviewed.style.display = 'none';
   }
 
   document.getElementById('modalOverlay').style.display = 'flex';

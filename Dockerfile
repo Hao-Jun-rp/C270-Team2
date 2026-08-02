@@ -39,6 +39,9 @@ USER appuser
 
 EXPOSE 8000
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"
+
 # Gunicorn is a production WSGI server; Flask's built-in server is
 # single-threaded and explicitly not for production use.
 #   --workers 2      handle concurrent requests (rule of thumb: 2*CPU+1)

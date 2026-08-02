@@ -1,15 +1,18 @@
 name: Trivy Security Scan
 
-# Runs a Trivy scan on every push to main and every PR, so vulnerabilities
-# and secrets are visible over time instead of only when someone remembers
-# to check manually. This is a TRACKING scan, not a gate — it never fails
-# the build (exit-code stays 0), it just reports.
+# Two steps, two different jobs:
+#   1. Full report (CRITICAL/HIGH/MEDIUM) — always runs, never blocks.
+#      This is what shows up in the run Summary + downloadable artifact,
+#      so nothing changes about how you track findings over time.
+#   2. Critical-only gate — FAILS the workflow if a CRITICAL vulnerability
+#      is found. This is the part that actually blocks a merge, matching
+#      what's described on the slide.
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:   # lets you trigger it manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   trivy-scan:
@@ -18,7 +21,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Trivy (dependencies + secrets)
+      - name: Full report (dependencies + secrets) — does not block
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
@@ -26,10 +29,10 @@ jobs:
           scanners: vuln,secret
           severity: CRITICAL,HIGH,MEDIUM
           format: table
-          exit-code: 0          # report only — does not fail the workflow
+          exit-code: 0
           output: trivy-report.txt
 
-      - name: Show results in the run summary
+      - name: Show full report in the run summary
         if: always()
         run: |
           echo "## Trivy scan results" >> "$GITHUB_STEP_SUMMARY"
@@ -44,3 +47,12 @@ jobs:
           name: trivy-report
           path: trivy-report.txt
           retention-days: 30
+
+      - name: Critical vulnerability gate — FAILS the build if found
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          severity: CRITICAL
+          exit-code: 1

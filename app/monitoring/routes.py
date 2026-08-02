@@ -12,7 +12,7 @@ stay fast and dependency-free so it can be polled frequently without
 adding load, and so it still responds even if something else in the
 app (e.g. templates, auth) is broken.
 """
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, current_app
 from sqlalchemy import text
 from ..extensions import db
 
@@ -26,5 +26,6 @@ def health():
         # not that any particular table/row exists.
         db.session.execute(text("SELECT 1"))
         return jsonify({"status": "ok", "database": "connected"}), 200
-    except Exception:
+    except Exception as e:
+        current_app.logger.error("Health check failed: database unreachable (%s)", e)
         return jsonify({"status": "error", "database": "disconnected"}), 503

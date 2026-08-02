@@ -292,3 +292,128 @@ def test_completion_does_not_reinvite_a_review_already_left(app, client):
         assert note is not None
         assert "leave a review" not in note.message
         assert "complete" in note.message.lower()
+
+
+# ===============================================================
+# 6. Services CRUD (admin side of Listings — Hazirah)
+# ===============================================================
+VALID_SERVICE_FORM = {
+    "name": "Window Cleaning", "category": "Home",
+    "description": "Streak-free windows, inside and out.",
+    "duration": "2 Hours", "price": "40", "image": "",
+}
+
+
+def test_customer_cannot_reach_the_services_admin_page(app, client):
+    with app.app_context():
+        make_user("customer@example.com")
+    login(client, "customer@example.com")
+
+    response = client.get("/admin/services")
+    assert response.status_code == 302
+    assert "/admin" not in response.headers["Location"]
+
+
+def test_admin_can_create_a_new_service(app, client):
+    with app.app_context():
+        make_user("marcus@sparkle.sg", role="admin")
+    login(client, "marcus@sparkle.sg")
+
+    client.post("/admin/services/new", data=VALID_SERVICE_FORM,
+                follow_redirects=True)
+
+    with app.app_context():
+        service = Service.query.filter_by(name="Window Cleaning").first()
+        assert service is not None
+        assert service.category == "Home"
+        assert service.is_active is True
+
+
+def test_new_service_rejects_a_category_not_on_the_fixed_list(app, client):
+    """A typo'd or made-up category (e.g. from a crafted request bypassing
+    the dropdown) must be rejected server-side, not just hidden client-side —
+    this is the lecturer-flagged fix that prevents duplicate/typo tabs."""
+    with app.app_context():
+        make_user("marcus@sparkle.sg", role="admin")
+    login(client, "marcus@sparkle.sg")
+
+    bad_form = {**VALID_SERVICE_FORM, "category": "home"}  # lowercase typo
+    client.post("/admin/services/new", data=bad_form, follow_redirects=True)
+
+    with app.app_context():
+        assert Service.query.filter_by(name="Window Cleaning").first() is None
+
+
+def test_new_service_rejects_a_negative_price(app, client):
+    with app.app_context():
+        make_user("marcus@sparkle.sg", role="admin")
+    login(client, "marcus@sparkle.sg")
+
+    bad_form = {**VALID_SERVICE_FORM, "price": "-10"}
+    client.post("/admin/services/new", data=bad_form, follow_redirects=True)
+
+    with app.app_context():
+        assert Service.query.filter_by(name="Window Cleaning").first() is None
+
+
+def test_admin_can_edit_an_existing_service(app, client):
+    with app.app_context():
+        make_user("marcus@sparkle.sg", role="admin")
+        service = make_service(name="Old Name")
+        service_id = service.id
+    login(client, "marcus@sparkle.sg")
+
+    edit_form = {**VALID_SERVICE_FORM, "name": "New Name", "price": "55"}
+    client.post(f"/admin/services/{service_id}/edit", data=edit_form,
+                follow_redirects=True)
+
+    with app.app_context():
+        service = db.session.get(Service, service_id)
+        assert service.name == "New Name"
+        assert service.price == 55.0
+
+
+def test_toggling_an_active_service_makes_it_inactive(app, client):
+    with app.app_context():
+        make_user("marcus@sparkle.sg", role="admin")
+        service = make_service()
+        service_id = service.id
+        assert service.is_active is True
+    login(client, "marcus@sparkle.sg")
+
+    client.post(f"/admin/services/{service_id}/toggle", follow_redirects=True)
+
+    with app.app_context():
+        assert db.session.get(Service, service_id).is_active is False
+
+
+def test_toggling_twice_reactivates_the_service(app, client):
+    with app.app_context():
+        make_user("marcus@sparkle.sg", role="admin")
+        service = make_service()
+        service_id = service.id
+    login(client, "marcus@sparkle.sg")
+
+    client.post(f"/admin/services/{service_id}/toggle", follow_redirects=True)
+    client.post(f"/admin/services/{service_id}/toggle", follow_redirects=True)
+
+    with app.app_context():
+        assert db.session.get(Service, service_id).is_active is True
+
+
+def test_a_deactivated_service_disappears_from_the_public_listings_page(app, client):
+    """This is the actual end-to-end proof of the admin-to-user sync we
+    demoed for CA2: toggling a service off in admin must hide it on
+    /listings, using the SAME database, with no manual refresh logic."""
+    with app.app_context():
+        make_user("marcus@sparkle.sg", role="admin")
+        service = make_service(name="Toggle Test Service")
+        service_id = service.id
+    login(client, "marcus@sparkle.sg")
+
+    assert b"Toggle Test Service" in client.get("/listings").data
+
+    client.post(f"/admin/services/{service_id}/toggle", follow_redirects=True)
+
+    assert b"Toggle Test Service" not in client.get("/listings").data
+    

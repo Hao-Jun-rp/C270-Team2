@@ -147,7 +147,7 @@
       ansible.builtin.git:
         repo: "{{ repo_url }}"
         dest: "{{ app_dir }}"
-        version: feature/ansible
+        version: main
         update: true
         force: true
       register: repo_state
@@ -172,18 +172,39 @@
     # -----------------------------------------------------------------
     # 5. Run the application
     #
-    # `--build` is deliberately NOT used: rebuilding on every run would
-    # report "changed" every time and destroy the idempotency proof.
-    # Compose only recreates containers when something actually differs.
-    # -----------------------------------------------------------------
-    # community.docker.docker_compose_v2 reports state more precisely, but
-    # needs an extra collection. Using the built-in command module with an
-    # explicit changed_when keeps this dependency-free and still honest
-    # about whether anything actually changed.
+    # WHY A CONDITIONAL REBUILD:
+    # docker-compose.yml declares `build: .` with `image: sparkle-app:latest`.
+    # Docker only builds when that image is MISSING, so once it exists the
+    # image is never rebuilt and freshly cloned code is silently ignored --
+    # the container keeps serving whatever was baked in on the very first
+    # run. (That is why /health returned 404 on the VM: the endpoint existed
+    # in the repo but not in the running image.)
     #
-    # NOTE: no `--build`. Rebuilding on every run would report "changed"
-    # every time and destroy the idempotency proof. Compose only recreates
-    # a container when something genuinely differs.
+    # Rebuilding on every run would fix that but report "changed" every
+    # time and destroy the idempotency proof. Rebuilding only when the git
+    # clone actually reported a change gives both: new code is picked up
+    # when there is new code, and a second run with nothing new is skipped
+    # entirely, so the run still reports changed=0.
+    # noqa: no-handler -- ansible-lint suggests making this a handler.
+    # It must not be one: handlers run at the END of the play, so the
+    # rebuild would happen after the container had already started from
+    # the stale image. The order matters here, so it stays a task.
+    - name: Rebuild the image when the repository changed # noqa: no-handler
+      ansible.builtin.command:
+        cmd: docker compose build
+        chdir: "{{ app_dir }}"
+      when: repo_state.changed
+      changed_when: true
+
+    # community.docker.docker_compose_v2 is used instead of shelling out to
+    # `docker compose up`, because the module reports changed/ok honestly
+    # rather than relying on hand-written string matching against output.
+    # Compose recreates the container when the image ID differs, so the
+    # rebuild above is picked up here automatically.
+    #
+    # PREREQUISITE: this module lives in the community.docker collection,
+    # which ships with the full `ansible` package but NOT with ansible-core.
+    # It is declared in ansible/requirements.yml -- see ansible/README.md.
     - name: Start the application with Docker Compose
       community.docker.docker_compose_v2:
         project_src: "{{ app_dir }}"

@@ -15,6 +15,27 @@ That log is the spec; this playbook is the executable version of it.
 | `vault.yml` | Encrypted secrets (Ansible Vault) |
 | `app_env.j2` | Template that writes the app's `.env` from Vault |
 | `nginx_sparkle.j2` | Nginx reverse-proxy site config |
+| `requirements.yml` | Ansible collections this playbook needs |
+
+## Before the first run
+
+Install the collections the playbook depends on:
+
+```bash
+ansible-galaxy collection install -r ansible/requirements.yml
+```
+
+This is a one-time step per machine. It cannot be done inside the
+playbook: Ansible resolves module names when it loads the file, before
+any task runs, so a missing collection makes the playbook fail to parse
+rather than fail at a task. If you skip this you get:
+
+```
+[ERROR]: couldn't resolve module/action 'community.docker.docker_compose_v2'
+```
+
+(The full `ansible` package bundles this collection already; `ansible-core`
+does not.)
 
 ## Running it
 
@@ -23,6 +44,17 @@ ansible-playbook -i inventory.ini playbook.yml --ask-vault-pass
 ```
 
 ## Proving idempotency
+
+The playbook rebuilds the Docker image **only when the git clone reports
+a change**. This matters in both directions: Docker only builds an image
+when it is missing, so without a rebuild step new code is cloned and then
+silently ignored (the container keeps running whatever was baked in on the
+first run) -- but rebuilding every time would report `changed` on every run
+and destroy the proof. Conditioning the rebuild on the clone gives both.
+
+So on a second run with no new commits, the rebuild task is **skipped**,
+and the run reports `changed=0`.
+
 
 Run it **twice**. The second run must report `changed=0`:
 

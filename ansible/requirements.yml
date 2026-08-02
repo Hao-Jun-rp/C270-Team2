@@ -1,0 +1,13 @@
+---
+# Ansible collections this playbook depends on.
+#
+# Collections are a CONTROL-NODE prerequisite: Ansible resolves module
+# names when it loads the playbook, before any task runs, so a missing
+# collection makes the playbook fail to parse rather than fail at the
+# task. That means it cannot be installed from inside the playbook --
+# it has to be installed first, the same way pip requirements are.
+#
+# Install with:
+#     ansible-galaxy collection install -r ansible/requirements.yml
+collections:
+  - name: community.docker

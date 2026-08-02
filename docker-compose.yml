@@ -37,7 +37,7 @@ services:
       # /health (Hao Jun's endpoint, merged in PR #69) does a real SELECT 1
       # against the database, so this now proves app + DB readiness rather
       # than just "a page rendered".
-      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/').status==200 else 1)\""]
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\""]
       interval: 30s
       timeout: 5s
       retries: 3

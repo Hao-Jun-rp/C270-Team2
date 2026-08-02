@@ -4,7 +4,7 @@ Handles: register, login, logout, view profile, edit profile, change password.
 This is also the worked example the rest of the team copies.
 """
 import re
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from ..extensions import db
 from ..models import User
@@ -47,6 +47,7 @@ def register():
             db.session.add(user)
             db.session.commit()
             login_user(user)  # sign them in straight away
+            current_app.logger.info("New user registered: %s", email)
             flash("Welcome to Sparkle!", "success")
             return redirect(url_for("dashboard.home"))
 
@@ -68,10 +69,12 @@ def login():
 
         if user and user.check_password(password):
             login_user(user)
+            current_app.logger.info("User logged in: %s", email)
             flash("Welcome back!", "success")
             return redirect(url_for("dashboard.home"))
 
         # Same message whether the email or password was wrong (safer).
+        current_app.logger.warning("Failed login attempt for email: %s", email)
         flash("Wrong email or password. Try again.", "error")
         return render_template("auth/login.html", email=email)
 

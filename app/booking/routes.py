@@ -15,7 +15,7 @@ import math
 import re
 from datetime import date, datetime
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 
 from ..extensions import db
@@ -230,6 +230,11 @@ def add_booking():
         )
         db.session.add(booking)
         db.session.commit()
+
+        current_app.logger.info(
+            "Booking created: id=%s user_id=%s service=%s date=%s",
+            booking.id, current_user.id, service.name, parsed_date.isoformat()
+        )
 
         from ..notifications.routes import create_notification
         create_notification(

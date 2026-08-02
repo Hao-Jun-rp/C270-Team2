@@ -1,4 +1,10 @@
 Flask==3.1.0
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Werkzeug==3.1.6
+pytest==9.0.3
+
+# Shared MySQL (Aiven) — only needed once you switch off local SQLite:
 PyMySQL==1.1.1
 cryptography==48.0.1
 python-dotenv==1.2.2

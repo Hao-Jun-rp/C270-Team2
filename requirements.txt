@@ -1,11 +1,10 @@
 Flask==3.1.0
-Flask-SQLAlchemy==3.1.1
-Flask-Login==0.6.3
-Werkzeug==3.1.6
-pytest==9.0.3
-
-# Shared MySQL (Aiven) — only needed once you switch off local SQLite:
-PyMySQL==1.1.1          # the MySQL driver SQLAlchemy talks through
-cryptography==48.0.1    # required for MySQL 8's caching_sha2_password auth
-python-dotenv==1.2.2    # loads DATABASE_URL etc. from your .env file
+PyMySQL==1.1.1
+cryptography==48.0.1
+python-dotenv==1.2.2
 gunicorn==23.0.0
+
+# TEMPORARY — deliberately vulnerable version, added only to verify the
+# Trivy CRITICAL gate actually blocks a build. Not used anywhere in the
+# app. REMOVE after confirming the gate fails, then push the revert.
+PyYAML==5.3.1
